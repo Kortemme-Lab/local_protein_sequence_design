@@ -1,0 +1,8 @@
+__pycache__
+local_protein_sequence_design.egg-info
+venv
+data
+debug
+dependencies/dependencies
+site_settings/site_settings.json
+

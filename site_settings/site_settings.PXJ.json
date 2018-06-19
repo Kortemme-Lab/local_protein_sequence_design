@@ -1,0 +1,12 @@
+{
+  "runpsipred_single" : "/home/xingjie/Softwares/scripts/binding_site_sequence_design/dependencies/dependencies/psipred/runpsipred_single",
+  "fragment_picker" : "fragment_picker.linuxclangrelease",
+  "vall" : "/home/xingjie/Softwares/scripts/binding_site_sequence_design/database/fragment_quality_analysis/small.vall.gz",
+  "csblast" : "/home/xingjie/Softwares/BLAST/csblast/bin/csblast-2.2.3_linux64",
+  "blastpgp" : "/home/xingjie/Softwares/BLAST/blast/blast-2.2.26/bin/blastpgp",
+  "placeholder_seqs" : "/home/xingjie/DataBases/BLAST/placeholder/placeholder_seqs",
+  "sparksx_path" : "",
+  "rosetta_database_fragment_picking" : "/home/xingjie/Softwares/Rosetta/githubRepo/main/database",
+  "dalphaball" : "/home/xingjie/Softwares/scripts/binding_site_sequence_design/dependencies/dependencies/DAlpahBall/DAlphaBall.gcc",
+  "fragment_quality_analysis_weights" : "/home/xingjie/Softwares/scripts/binding_site_sequence_design/database/fragment_quality_analysis/standard.wghts"
+}
