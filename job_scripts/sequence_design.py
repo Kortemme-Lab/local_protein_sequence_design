@@ -19,8 +19,7 @@ def print_pymol_selection_for_residues(pose, residues):
 
 
 def design(input_dir, data_path, num_jobs, job_id):
-    #pyrosetta.init(options='-mute all')
-    pyrosetta.init()
+    pyrosetta.init(options='-mute all')
 
     # Get all the tasks
 
@@ -42,7 +41,6 @@ def design(input_dir, data_path, num_jobs, job_id):
             os.makedirs(output_path, exist_ok=True)
 
             LPSD.sequence_design.make_one_design(output_path, t[0], t[1])
-            exit()
 
 if __name__ == '__main__':
     data_path = sys.argv[1]
