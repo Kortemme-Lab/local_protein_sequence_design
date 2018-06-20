@@ -25,6 +25,9 @@ def design(input_dir, data_path, num_jobs, job_id):
 
     tasks = []
     for s in sorted(os.listdir(input_dir)):
+        if not s.endswiths('.pdb.gz'):
+            continue
+        
         s_s = s.split('.')[0].split('_')
         bb_remodeled_residues = list(range(int(s_s[4]), int(s_s[5]) + 1))
         
