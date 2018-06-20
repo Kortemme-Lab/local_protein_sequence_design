@@ -8,13 +8,13 @@ import json
 import pyrosetta
 from pyrosetta import rosetta
 
-import binding_site_sequence_design as  BSSD
+import local_protein_sequence_design as  LPSD
 
 
 def test_filter(data_path, num_jobs, job_id):
     cwd = os.getcwd()
-    BSSD.site_settings.binding_site_sequence_design_home = cwd
-    pyrosetta.init(options='-extra_res_fa {0}/test_inputs/PCB.params'.format(cwd))
+    LPSD.site_settings.binding_site_sequence_design_home = cwd
+    pyrosetta.init(options='-mute all')
 
     for i in os.listdir(data_path):
         if i.isdigit() and int(i) % num_jobs == job_id:
@@ -29,7 +29,7 @@ def test_filter(data_path, num_jobs, job_id):
             with open(design_info_file, 'r') as f:
                 design_info = json.load(f)
 
-            BSSD.filter.generate_filter_scores(filter_info_file, pose, design_info['ligand_residue'],
+            LPSD.filter.generate_filter_scores(filter_info_file, pose,
                     design_info['designable_residues'], design_info['repackable_residues'], design_info['bb_remodeled_residues'])
 
             os.chdir(cwd)

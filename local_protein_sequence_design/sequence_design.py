@@ -140,8 +140,6 @@ def make_one_design(output_path, input_pdb, bb_remodeled_residues):
     info_dict = {
             'sequence' : pose.sequence(),
             'bb_remodeled_residues' : bb_remodeled_residues,
-            'motif_residues' : motif_residues,
-            'ligand_residue' : ligand_residue,
             'designable_residues' : designable_residues,
             'repackable_residues' : repackable_residues,
             'score' :  pose.energies().total_energy(), 
