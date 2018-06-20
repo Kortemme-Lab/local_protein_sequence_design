@@ -44,6 +44,22 @@ def get_num_buried_unsatisfied_hbonds(pose, residues):
 
     return sum(buhs_for_each_res[i - 1] for i in residues)
 
+def get_hydrophobic_sasa_sc(pose, residues):
+    '''Calculate the hydrophobic sidechain SASA for a given set of residues.'''
+    hydrophobic_residues = ['ALA', 'PRO', 'VAL', 'LEU', 'ILE', 'MET',
+                            'PHE', 'TYR', 'TRP']
+    
+    rsd_sasa = pyrosetta.rosetta.utility.vector1_double()
+    rosetta.core.scoring.calc_per_atom_sasa_sc(pose, rsd_sasa, False)
+ 
+    sasa = 0
+
+    for i in residues:
+        if pose.residue(i).name3() in hydrophobic_residues:
+            sasa += rsd_sasa[i]
+
+    return sasa
+
 def get_holes_score_for_residues(pose, residues):
     '''Get the holes score for a list of residues.'''
     ss = site_settings.load_site_settings()
@@ -115,6 +131,10 @@ def generate_filter_scores(filter_info_file, pose, designable_residues, repackab
     # Get the number of buried unsatisfied hbonds
 
     filter_scores['buried_unsat_for_designable_residues'] = get_num_buried_unsatisfied_hbonds(pose, designable_residues)
+
+    # Get the hydrophobic sasa for designable residues
+
+    filter_scores['hydrophobic_sasa_sc_for_designable_residues'] = get_hydrophobic_sasa_sc(pose, designable_residues)
 
     # Get the local holes score
 
