@@ -25,7 +25,7 @@ def design(input_dir, data_path, num_jobs, job_id):
 
     tasks = []
     for s in sorted(os.listdir(input_dir)):
-        if not s.endswiths('.pdb.gz'):
+        if not s.endswith('.pdb.gz'):
             continue
         
         s_s = s.split('.')[0].split('_')
