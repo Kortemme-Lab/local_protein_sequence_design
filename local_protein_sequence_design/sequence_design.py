@@ -27,7 +27,7 @@ def find_surrounding_seqposes_noGP(pose, central_residues, cutoff_distance=10):
             if ca1.distance(nbra2) > cutoff_distance:
                 continue
 
-            if (cb1 - ca1).dot(nbra2 - ca1) > 0:
+            if (cb1 - ca1).normalize().dot((nbra2 - ca1).normalize()) > 0.5:
                 surrounding_residues.add(res1)
 
     return list(surrounding_residues)

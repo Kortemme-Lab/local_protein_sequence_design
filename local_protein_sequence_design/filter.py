@@ -44,6 +44,16 @@ def get_num_buried_unsatisfied_hbonds(pose, residues):
 
     return sum(buhs_for_each_res[i - 1] for i in residues)
 
+def get_num_over_saturated_hbond_acceptors(pose, acceptor_residues):
+    '''Get the number of over saturated hbond acceptors for
+    a given set of acceptor residues.
+    '''
+    oshaf = rosetta.protocols.cyclic_peptide.OversaturatedHbondAcceptorFilter()
+    oshaf.set_acceptor_selector(get_residue_selector_for_residues(acceptor_residues))
+    oshaf.set_consider_mainchain_only(False)
+
+    return oshaf.report_sm(pose)
+
 def get_hydrophobic_sasa_sc(pose, residues):
     '''Calculate the hydrophobic sidechain SASA for a given set of residues.'''
     hydrophobic_residues = ['ALA', 'PRO', 'VAL', 'LEU', 'ILE', 'MET',
@@ -132,6 +142,10 @@ def generate_filter_scores(filter_info_file, pose, designable_residues, repackab
 
     filter_scores['buried_unsat_for_designable_residues'] = get_num_buried_unsatisfied_hbonds(pose, designable_residues)
 
+    # Get the number of over saturated hbond acceptors
+
+    filter_scores['num_over_saturated_hbond_acceptors_for_designable_residues'] = get_num_over_saturated_hbond_acceptors(pose, designable_residues)
+
     # Get the hydrophobic sasa for designable residues
 
     filter_scores['hydrophobic_sasa_sc_for_designable_residues'] = get_hydrophobic_sasa_sc(pose, designable_residues)
@@ -146,10 +160,10 @@ def generate_filter_scores(filter_info_file, pose, designable_residues, repackab
 
     # Get fragment quality analysis scores for the backbone remodeled region
     
-    #bb_remodeled_worst_fragment_crmsd, bb_remodeled_mean_fragment_crmsd = get_fragment_quality_scores(pose, bb_remodeled_residues)
+    bb_remodeled_worst_fragment_crmsd, bb_remodeled_mean_fragment_crmsd = get_fragment_quality_scores(pose, bb_remodeled_residues)
    
-    #filter_scores['bb_remodeled_worst_fragment_crmsd'] = bb_remodeled_worst_fragment_crmsd
-    #filter_scores['bb_remodeled_mean_fragment_crmsd'] = bb_remodeled_mean_fragment_crmsd
+    filter_scores['bb_remodeled_worst_fragment_crmsd'] = bb_remodeled_worst_fragment_crmsd
+    filter_scores['bb_remodeled_mean_fragment_crmsd'] = bb_remodeled_mean_fragment_crmsd
 
     with open(filter_info_file, 'w') as f:
         json.dump(filter_scores, f)
