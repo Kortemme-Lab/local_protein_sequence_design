@@ -31,9 +31,9 @@ def design(input_dir, data_path, num_jobs, job_id):
         s_s = s.split('.')[0].split('_')
         bb_remodeled_residues = list(range(int(s_s[4]), int(s_s[5]) + 1))
         
-        # Make 10 designs for each of the structure
+        # Make 2 designs for each of the structure
 
-        for i in range(10):
+        for i in range(2):
             tasks.append( (os.path.join(input_dir, s), bb_remodeled_residues) )
 
     # Make designs
@@ -58,7 +58,8 @@ if __name__ == '__main__':
     
     start_time = time.time()
    
-    input_dir = 'test_inputs/screen_lhl_units_2lta_small'
+    #input_dir = 'test_inputs/screen_lhl_units_2lta_small'
+    input_dir = '/netapp/home/xingjiepan/Softwares/loop_helix_loop_reshaping/data/screen_lhl_units_2lta'
     design(input_dir, data_path, num_jobs, job_id)
 
     end_time = time.time()
