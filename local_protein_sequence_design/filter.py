@@ -70,6 +70,14 @@ def get_hydrophobic_sasa_sc(pose, residues):
 
     return sasa
 
+def get_sasa(pose, residues):
+    '''Calculate the total and hydrophobic sasa for a given set of residues.'''
+    rsd_sasa = pyrosetta.rosetta.utility.vector1_double()
+    rsd_hydrophobic_sasa = pyrosetta.rosetta.utility.vector1_double()
+    rosetta.core.scoring.calc_per_res_hydrophobic_sasa(pose, rsd_sasa, rsd_hydrophobic_sasa, 1.4) #The last arguement is the probe radius
+
+    return sum(rsd_sasa[i] for i in residues), sum(rsd_hydrophobic_sasa[i] for i in residues)
+
 def get_holes_score_for_residues(pose, residues):
     '''Get the holes score for a list of residues.'''
     ss = site_settings.load_site_settings()
@@ -149,6 +157,15 @@ def generate_filter_scores(filter_info_file, pose, designable_residues, repackab
     # Get the hydrophobic sasa for designable residues
 
     filter_scores['hydrophobic_sasa_sc_for_designable_residues'] = get_hydrophobic_sasa_sc(pose, designable_residues)
+
+    # Get the hydrophobic sasa for movable residues
+
+    total_sasa, hydrophobic_sasa = get_sasa(pose, designable_residues + repackable_residues)
+
+    filter_scores['hydrophobic_sasa_for_movable_residues'] = hydrophobic_sasa 
+    filter_scores['average_hydrophobic_sasa_for_movable_residues'] = hydrophobic_sasa / len(designable_residues + repackable_residues) 
+    filter_scores['relative_hydrophobic_sasa_for_movable_residues'] = hydrophobic_sasa / total_sasa
+
 
     # Get the local holes score
 
