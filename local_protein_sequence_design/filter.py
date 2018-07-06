@@ -136,23 +136,34 @@ def generate_filter_scores(filter_info_file, pose, designable_residues, repackab
     '''Generate the scores of filters and save the scores
     into the filter_info_file in json format.
     '''
+    movable_residues = designable_residues + repackable_residues
+    all_residues = list(range(1, pose.size()))
+
     filter_scores = {}
 
-    # Get the average energy of designable residues
+    # Get the average energies
 
     filter_scores['designable_residues_average_energy'] = residues_average_energy(pose, designable_residues)
+    filter_scores['movable_residues_average_energy'] = residues_average_energy(pose, movable_residues)
+    filter_scores['all_average_energy'] = residues_average_energy(pose, all_residues)
 
-    # Get the max energy of designable residues
+    # Get the max energy of residues
 
     filter_scores['designable_residues_max_energy'] = residues_max_energy(pose, designable_residues)
+    filter_scores['movable_residues_max_energy'] = residues_max_energy(pose, movable_residues)
+    filter_scores['all_residues_max_energy'] = residues_max_energy(pose, all_residues)
 
     # Get the number of buried unsatisfied hbonds
 
     filter_scores['buried_unsat_for_designable_residues'] = get_num_buried_unsatisfied_hbonds(pose, designable_residues)
+    filter_scores['buried_unsat_for_movable_residues'] = get_num_buried_unsatisfied_hbonds(pose, movable_residues)
+    filter_scores['buried_unsat_for_all_residues'] = get_num_buried_unsatisfied_hbonds(pose, all_residues)
 
     # Get the number of over saturated hbond acceptors
 
     filter_scores['num_over_saturated_hbond_acceptors_for_designable_residues'] = get_num_over_saturated_hbond_acceptors(pose, designable_residues)
+    filter_scores['num_over_saturated_hbond_acceptors_for_movable_residues'] = get_num_over_saturated_hbond_acceptors(pose, designable_residues)
+    filter_scores['num_over_saturated_hbond_acceptors_for_all_residues'] = get_num_over_saturated_hbond_acceptors(pose, designable_residues)
 
     # Get the hydrophobic sasa for designable residues
 
@@ -166,10 +177,11 @@ def generate_filter_scores(filter_info_file, pose, designable_residues, repackab
     filter_scores['average_hydrophobic_sasa_for_movable_residues'] = hydrophobic_sasa / len(designable_residues + repackable_residues) 
     filter_scores['relative_hydrophobic_sasa_for_movable_residues'] = hydrophobic_sasa / total_sasa
 
-
     # Get the local holes score
 
-    filter_scores['local_holes_score'] = get_holes_score_for_residues(pose, designable_residues)
+    filter_scores['designable_local_holes_score'] = get_holes_score_for_residues(pose, designable_residues)
+    filter_scores['movable_local_holes_score'] = get_holes_score_for_residues(pose, movable_residues)
+    filter_scores['all_local_holes_score'] = get_holes_score_for_residues(pose, all_residues)
 
     # Get the backbone remodeled residues helixc complementarity score
 
