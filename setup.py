@@ -18,6 +18,7 @@ setup(
     ],
     extras_require = {
         'weblogo':  ['weblogo'],
+        'pandas':  ['pandas'],
     },
     entry_points={
         'console_scripts': [
