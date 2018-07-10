@@ -18,7 +18,7 @@ def print_pymol_selection_for_residues(pose, residues):
     print('sele ' + ' or '.join(res_commands))
 
 
-def design(input_dir, data_path, num_jobs, job_id):
+def design(input_dir, data_path, unmoved_bb_pdb, num_jobs, job_id):
     pyrosetta.init(options='-mute all')
 
     # Get all the tasks
@@ -42,8 +42,8 @@ def design(input_dir, data_path, num_jobs, job_id):
         if i % num_jobs == job_id:
             output_path = os.path.join(data_path, str(i))
             os.makedirs(output_path, exist_ok=True)
-
-            LPSD.sequence_design.make_one_design(output_path, t[0], t[1])
+            
+            LPSD.sequence_design.make_one_design(output_path, t[0], t[1], unmoved_bb_pdb=unmoved_bb_pdb)
 
 if __name__ == '__main__':
     data_path = sys.argv[1]
@@ -60,8 +60,12 @@ if __name__ == '__main__':
    
     #input_dir = 'test_inputs/screen_lhl_units_2lta_small'
     #input_dir = '/netapp/home/xingjiepan/Softwares/loop_helix_loop_reshaping/data/screen_lhl_units_2lta'
+    
+    #input_dir = '/home/xingjie/Softwares/scripts/loop_helix_loop_reshaping/data/screen_lhl_units_2lv8'
     input_dir = '/netapp/home/xingjiepan/Softwares/loop_helix_loop_reshaping/data/screen_lhl_units_2lv8'
-    design(input_dir, data_path, num_jobs, job_id)
+    unmoved_bb_pdb = 'test_inputs/2lv8_unmoved_bb.pdb'
+    
+    design(input_dir, data_path, unmoved_bb_pdb, num_jobs, job_id)
 
     end_time = time.time()
     print('Finish job in {0} seconds.'.format(int(end_time - start_time)))
