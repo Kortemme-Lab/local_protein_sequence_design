@@ -56,7 +56,7 @@ def generate_summary_table_for_dataset(path_to_the_dataset):
                 df = df.append(df_for_design, ignore_index=True)
 
     df.to_csv(os.path.join(path_to_the_dataset, 'summary_table.tsv'),
-        sep='\t')
+        sep='\t', index=False)
         
 
 if __name__ == '__main__':
