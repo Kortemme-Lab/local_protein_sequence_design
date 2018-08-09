@@ -1,5 +1,6 @@
 import os
 import json
+import time
 
 import pyrosetta
 from pyrosetta import rosetta
@@ -130,7 +131,9 @@ def make_one_design(output_path, input_pdb, bb_remodeled_residues, unmoved_bb_pd
         bb_remodeled_residues: a list of sequence positions for backbone
             remodeled residues
     '''
-    
+    start_time = time.time()
+
+
     # Design
     
     pose = rosetta.core.pose.Pose()
@@ -146,12 +149,15 @@ def make_one_design(output_path, input_pdb, bb_remodeled_residues, unmoved_bb_pd
 
     pose.dump_pdb(os.path.join(output_path, 'design.pdb.gz'))
 
+    end_time = time.time()
+    
     info_dict = {
             'sequence' : pose.sequence(),
             'bb_remodeled_residues' : bb_remodeled_residues,
             'designable_residues' : designable_residues,
             'repackable_residues' : repackable_residues,
             'score' :  pose.energies().total_energy(), 
+            'design_time' : end_time - start_time,
             }
 
     with open(os.path.join(output_path, 'design_info.json'), 'w') as f:
