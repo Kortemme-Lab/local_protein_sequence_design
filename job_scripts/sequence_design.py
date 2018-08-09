@@ -61,8 +61,9 @@ if __name__ == '__main__':
     #input_dir = 'test_inputs/screen_lhl_units_2lta_small'
     #input_dir = '/netapp/home/xingjiepan/Softwares/loop_helix_loop_reshaping/data/screen_lhl_units_2lta'
     
+    input_dir = 'test_inputs/screen_lhl_units_2lv8_small'
     #input_dir = '/home/xingjie/Softwares/scripts/loop_helix_loop_reshaping/data/screen_lhl_units_2lv8'
-    input_dir = '/netapp/home/xingjiepan/Softwares/loop_helix_loop_reshaping/data/screen_lhl_units_2lv8'
+    #input_dir = '/netapp/home/xingjiepan/Softwares/loop_helix_loop_reshaping/data/screen_lhl_units_2lv8'
     unmoved_bb_pdb = 'test_inputs/2lv8_unmoved_bb.pdb'
     
     design(input_dir, data_path, unmoved_bb_pdb, num_jobs, job_id)
