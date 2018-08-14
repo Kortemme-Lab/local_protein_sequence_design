@@ -30,6 +30,18 @@ def residues_max_energy(pose, residues):
 
     return max(list(pose.energies().residue_total_energy(i) for i in residues))
 
+def get_buhs_for_each_res(pose):
+    '''Return a list of numbers of buried unsatisfied
+    hbonds for each residue.
+    '''
+    bupc = rosetta.protocols.simple_pose_metric_calculators.BuriedUnsatisfiedPolarsCalculator(
+            'default', 'default')
+
+    sfxn = rosetta.core.scoring.get_score_function()
+    sfxn(pose)
+  
+    return json.loads(bupc.get('residue_bur_unsat_polars', pose))
+
 def get_backrub_ensemble_consensus_buhs_for_each_res(pose):
     '''Get the list of numbers of ensemble consensus buried unsatisfied
     hbonds for each residue.
