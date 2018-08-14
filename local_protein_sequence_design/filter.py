@@ -30,6 +30,39 @@ def residues_max_energy(pose, residues):
 
     return max(list(pose.energies().residue_total_energy(i) for i in residues))
 
+def get_backrub_ensemble_consensus_buhs_for_each_res(pose):
+    '''Get the list of numbers of ensemble consensus buried unsatisfied
+    hbonds for each residue.
+    '''
+    br_mover = rosetta.protocols.backrub.BackrubMover()
+    br_mover.set_max_atoms(4)
+    
+    buhs_for_each_res = get_buhs_for_each_res(pose)
+    
+    # Update the number of segments
+    
+    tmp_pose = pose.clone()
+    br_mover.apply(tmp_pose)
+
+    # Iterate throught all segments
+
+    for i in range(1, br_mover.num_segments() + 1):
+        br_mover.set_next_segment_id(i)
+       
+        # For each segment, generate 5 structures
+        
+        for j in range(5):
+            tmp_pose = pose.clone()
+            br_mover.apply(tmp_pose)
+            tmp_buh_for_each_res = get_buhs_for_each_res(tmp_pose)
+           
+            # Only keep the consensus buried unsats
+
+            for k in range(len(buhs_for_each_res)):
+                buhs_for_each_res[k] = min(buhs_for_each_res[k], tmp_buh_for_each_res[k])
+
+    return buhs_for_each_res
+
 def get_num_buried_unsatisfied_hbonds(pose, residues):
     '''Get the number of buried unsatisfied hbonds
     for each of the given set of residues.
@@ -158,6 +191,12 @@ def generate_filter_scores(filter_info_file, pose, designable_residues, repackab
     filter_scores['buried_unsat_for_designable_residues'] = get_num_buried_unsatisfied_hbonds(pose, designable_residues)
     filter_scores['buried_unsat_for_movable_residues'] = get_num_buried_unsatisfied_hbonds(pose, movable_residues)
     filter_scores['buried_unsat_for_all_residues'] = get_num_buried_unsatisfied_hbonds(pose, all_residues)
+
+    backrub_ensemble_consensus_buhs_for_each_res = get_backrub_ensemble_consensus_buhs_for_each_res(pose)
+
+    filter_scores['backrub_ensemble_consensus_buhs_for_all_residues'] = sum(backrub_ensemble_consensus_buhs_for_each_res)
+    filter_scores['backrub_ensemble_consensus_buhs_for_designable_residues'] = sum(backrub_ensemble_consensus_buhs_for_each_res[i + 1] for i in designable_residues)
+    filter_scores['backrub_ensemble_consensus_buhs_for_movable_residues'] = sum(backrub_ensemble_consensus_buhs_for_each_res[i + 1] for i in movable_residues)
 
     # Get the number of over saturated hbond acceptors
 
