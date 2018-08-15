@@ -17,7 +17,7 @@ def row_path_selection(row):
         return False
 
     # Filter by holes
-    if row['movable_local_holes_score'] > 0 or row['movable_local_holes_score'] > 0:
+    if row['movable_local_holes_score'] > 0 or row['all_local_holes_score'] > 0:
         return False
 
     # Filter by helix complimentarity
@@ -25,7 +25,7 @@ def row_path_selection(row):
         return False
 
     # Filter by the number of buried unsatisfied hbonds
-    if row['buried_unsat_for_movable_residues'] > 0:
+    if row['backrub_ensemble_consensus_buhs_for_all_residues'] > 0:
         return False
 
     # Filter by the number of over saturated hbond acceptors
