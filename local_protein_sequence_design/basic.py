@@ -34,7 +34,7 @@ def get_task_factory(pose, designable_residues, repackable_residues, extra_rotam
         ers = rosetta.core.pack.task.operation.ExtraRotamersGeneric()
         ers.ex1(True)
         ers.ex2(True)
-        ers.extrachi_cutoff(0)
+        ers.extrachi_cutoff(18)
 
         task_factory.push_back(ers)
 
