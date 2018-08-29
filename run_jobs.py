@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.6
+#!/usr/bin/env python3
 
 '''
 Run jobs for binding site sequence design. Before launching this 
