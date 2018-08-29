@@ -19,7 +19,8 @@ def print_pymol_selection_for_residues(pose, residues):
 
 
 def design(input_dir, data_path, unmoved_bb_pdb, num_jobs, job_id):
-    pyrosetta.init(options='-mute all')
+    #pyrosetta.init(options='-mute all')
+    pyrosetta.init()
 
     # Get all the tasks
 
@@ -33,7 +34,7 @@ def design(input_dir, data_path, unmoved_bb_pdb, num_jobs, job_id):
         
         # Make 5 designs for each of the structure
 
-        for i in range(5):
+        for i in range(1):
             tasks.append( (os.path.join(input_dir, s), bb_remodeled_residues) )
 
     # Make designs
@@ -61,7 +62,8 @@ if __name__ == '__main__':
     #input_dir = 'test_inputs/screen_lhl_units_2lta_small'
     #input_dir = '/netapp/home/xingjiepan/Softwares/loop_helix_loop_reshaping/data/screen_lhl_units_2lta'
     
-    input_dir = 'test_inputs/screen_lhl_units_2lv8_small'
+    input_dir = 'test_inputs/screen_lhl_units_2lv8_single'
+    #input_dir = 'test_inputs/screen_lhl_units_2lv8_small'
     #input_dir = '/home/xingjie/Softwares/scripts/loop_helix_loop_reshaping/data/screen_lhl_units_2lv8'
     #input_dir = '/netapp/home/xingjiepan/Softwares/loop_helix_loop_reshaping/data/screen_lhl_units_2lv8'
     unmoved_bb_pdb = 'test_inputs/2lv8_unmoved_bb.pdb'
