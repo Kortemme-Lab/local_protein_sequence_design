@@ -59,12 +59,13 @@ def get_backrub_ensemble_consensus_buhs_for_each_res(pose):
     # Iterate throught all segments
 
     for i in range(1, br_mover.num_segments() + 1):
-        br_mover.set_next_segment_id(i)
        
         # For each segment, generate 5 structures
         
         for j in range(5):
             tmp_pose = pose.clone()
+            
+            br_mover.set_next_segment_id(i)
             br_mover.apply(tmp_pose)
             tmp_buh_for_each_res = get_buhs_for_each_res(tmp_pose)
            
