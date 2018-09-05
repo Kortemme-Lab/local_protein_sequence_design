@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 '''Calculate the backbone RMSD of the remodeled region. 
 Usage:
-    ./calculate_bb_remodeled_region_rmsd.py design_path1 design_path2
+    ./calculate_bb_remodeled_region_rmsd.py design_path1 design_path2 [design_path3 ...]
 '''
 
 import os
@@ -9,6 +9,7 @@ import sys
 import json
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import pyrosetta
 from pyrosetta import rosetta
@@ -17,17 +18,21 @@ from pyrosetta import rosetta
 def load_design(design_path):
     '''Load a design.
     Return:
-        pose, bb_remodeled_residues, bb_fixed_residues
+        pose_design, pose_lowest_energy, bb_remodeled_residues, bb_fixed_residues
     '''
-    pose = rosetta.core.pose.Pose()
-    rosetta.core.import_pose.pose_from_file(pose, os.path.join(design_path, 'design.pdb.gz'))
+    pose_design = rosetta.core.import_pose.pose_from_file(os.path.join(design_path, 'design.pdb.gz'))
     
+    if os.path.exists(os.path.join(design_path, 'lowest_energy_model.pdb')):
+        pose_lowest_energy = rosetta.core.import_pose.pose_from_file(os.path.join(design_path, 'lowest_energy_model.pdb'))
+    else:
+        pose_lowest_energy = pose_design.clone()
+
     with open(os.path.join(design_path, 'design_info.json'), 'r') as f:
         bb_remodeled_residues = json.load(f)['bb_remodeled_residues']
 
-    bb_fixed_residues = [i for i in range(1, pose.size() + 1) if not (i in bb_remodeled_residues)]
+    bb_fixed_residues = [i for i in range(1, pose_design.size() + 1) if not (i in bb_remodeled_residues)]
 
-    return pose, bb_remodeled_residues, bb_fixed_residues
+    return pose_design, pose_lowest_energy, bb_remodeled_residues, bb_fixed_residues
 
 def xyzV_to_np_array(xyz):
     return np.array([xyz.x, xyz.y, xyz.z])
@@ -139,27 +144,88 @@ def rmsd_between_segments(pose1, segment1, pose2, segment2):
 #
 #    return (min(helix_residues), max(helix_residues))
 
-def calculate_bb_remodeled_region_rmsd(design_path1, design_path2):
-    '''Calculate the backbone RMSD of the remodeled region.''' 
-    pose1, bb_remodeled_residues1, bb_fixed_residues1 = load_design(design_path1)
-    pose2, bb_remodeled_residues2, bb_fixed_residues2 = load_design(design_path2)
-  
-    # Superimpose design2 to design1
+def calculate_bb_remodeled_region_rmsds(design_paths):
+    '''Calculate the backbone RMSDs of the remodeled region.
+    Return a two dimensional list where list[i][j] element
+    is the RMSD between design i and lowest scoring model j.
+    ''' 
+    # Update the design_paths to exclude paths that have designed structures
 
-    superimpose_poses_by_residues(pose2, bb_fixed_residues2, pose1, bb_fixed_residues1)
+    design_paths = [d for d in design_paths if os.path.exists(os.path.join(d, 'design.pdb.gz'))]
+   
+    # Load the designs
 
-    segment1 = (min(bb_remodeled_residues1), max(bb_remodeled_residues1))
-    segment2 = (min(bb_remodeled_residues2), max(bb_remodeled_residues2))
+    pose_designs = list(range(len(design_paths)))
+    pose_lowest_energies = list(range(len(design_paths)))
+    all_bb_remodeled_residues = list(range(len(design_paths)))
+    all_bb_fixed_residues = list(range(len(design_paths)))
 
-    seg_rmsd = rmsd_between_segments(pose1, segment1, pose2, segment2)
-    print('The bb remodeled region rmsd is', seg_rmsd) 
+    for i in range(len(design_paths)):
+        pose_designs[i], pose_lowest_energies[i], all_bb_remodeled_residues[i], all_bb_fixed_residues[i] = load_design(design_paths[i])
+
+    # Loop through all pair of designs and calculate RMSDs
+   
+    RMSDs = []
+
+    for i in range(len(design_paths)):
+        RMSDs.append([])
+        for j in range(len(design_paths)):
+
+            # Superimpose design j to design i
+
+            superimpose_poses_by_residues(pose_lowest_energies[j], all_bb_fixed_residues[j], pose_designs[i], all_bb_fixed_residues[i])
+
+            # Get the movable segments
+
+            segment1 = (min(all_bb_remodeled_residues[i]), max(all_bb_remodeled_residues[i]))
+            segment2 = (min(all_bb_remodeled_residues[j]), max(all_bb_remodeled_residues[j]))
+
+            seg_rmsd = rmsd_between_segments(pose_designs[i], segment1, pose_lowest_energies[j], segment2)
+
+            RMSDs[i].append(seg_rmsd)
+          
+    return RMSDs
+
+def plot_bb_remodeled_region_rmsds(design_paths):
+    '''Calculate the backbone RMSDs of the remodeled region.'''
+    # Update the design_paths to exclude paths that have designed structures
+
+    design_paths = [d for d in design_paths if os.path.exists(os.path.join(d, 'design_info.json'))]
+
+    rmsds = calculate_bb_remodeled_region_rmsds(design_paths)
+
+    # Plot the heat map
+
+    plt.close()
+    
+    fig, ax = plt.subplots()
+    cax = ax.imshow(np.transpose(rmsds), origin='lower', interpolation='nearest', cmap='bwr')
+
+    ## Plot RMSD values
+    #for i in range(len(design_paths)):
+    #    for j in range(len(design_paths)):
+    #        ax.text(i - 0.35, j, "{:6.3f}".format(rmsds[i][j]), fontsize=10)
+
+    plt.xticks(range(len(design_paths)), design_paths, fontsize=15, rotation='vertical')
+    plt.yticks(range(len(design_paths)), design_paths, fontsize=15)
+    
+    plt.xlabel('Designs', fontsize=15)
+    plt.ylabel('Lowest energy predictions', fontsize=15)
+
+    plt.title('RMSD between designs and predicted structures', fontsize=15)
+
+    cbar = fig.colorbar(cax)
+
+    plt.tight_layout()  # Make sure there is room for the labels
+
+    #plt.show()
+    plt.savefig('bb_remodeled_RMSD_comparison.png')
 
 
 if __name__ == '__main__':
-    design_path1 = sys.argv[1]
-    design_path2 = sys.argv[2]
+    design_paths = sys.argv[1:]
 
     pyrosetta.init()
 
-    calculate_bb_remodeled_region_rmsd(design_path1, design_path2)
+    plot_bb_remodeled_region_rmsds(design_paths)
 
