@@ -7,7 +7,7 @@ from pyrosetta import rosetta
 
 from local_protein_sequence_design.basic import *
 
-def find_surrounding_seqposes_noGP(pose, central_residue_ids, cutoff_distance=10, unmoved_bb_pose=None):
+def find_surrounding_seqposes_noGP(pose, central_residue_ids, cutoff_distance=10, pre_moved_bb_pose=None):
     '''Return the residue ids that surround a given list of
     central residues and the pose of unmoved backbone.
     The selected residues are within a cutoff CA distance and
@@ -18,9 +18,9 @@ def find_surrounding_seqposes_noGP(pose, central_residue_ids, cutoff_distance=10
     surrounding_residues = set()
     
     central_residues = [pose.residue(i) for i in central_residue_ids]
-    if not (unmoved_bb_pose is None):
-        for i in range(1, unmoved_bb_pose.size() + 1):
-            central_residues.append(unmoved_bb_pose.residue(i))
+    if not (pre_moved_bb_pose is None):
+        for i in range(1, pre_moved_bb_pose.size() + 1):
+            central_residues.append(pre_moved_bb_pose.residue(i))
 
     for res1_id in rest_of_residues:
         if pose.residue(res1_id).name3() in ['GLY', 'PRO']: continue 
@@ -38,11 +38,11 @@ def find_surrounding_seqposes_noGP(pose, central_residue_ids, cutoff_distance=10
 
     return list(surrounding_residues)
 
-def select_designable_residues(pose, bb_remodeled_residues, ignore_GP=True, unmoved_bb_pose=None):
+def select_designable_residues(pose, bb_remodeled_residues, ignore_GP=True, pre_moved_bb_pose=None):
     '''Select residues that should be set to designable.
     Return a list of residue ids. 
     '''
-    raw_designable_residues = bb_remodeled_residues + find_surrounding_seqposes_noGP(pose, bb_remodeled_residues, cutoff_distance=10, unmoved_bb_pose=unmoved_bb_pose)
+    raw_designable_residues = bb_remodeled_residues + find_surrounding_seqposes_noGP(pose, bb_remodeled_residues, cutoff_distance=10, pre_moved_bb_pose=pre_moved_bb_pose)
     
     designable_residues = []
     
@@ -76,7 +76,7 @@ def get_move_map(bb_movable_residues, sc_movable_residues, movable_jumps):
     
     return mm
 
-def fast_design(pose, bb_remodeled_residues, flex_bb=True, unmoved_bb_pose=None):
+def fast_design(pose, bb_remodeled_residues, flex_bb=True, pre_moved_bb_pose=None):
     '''Do fast design
     Return:
         designable_residues_all, repackable_residues
@@ -95,7 +95,7 @@ def fast_design(pose, bb_remodeled_residues, flex_bb=True, unmoved_bb_pose=None)
 
     # Find designable and repackable residues
    
-    designable_residues = select_designable_residues(pose, bb_remodeled_residues, unmoved_bb_pose=unmoved_bb_pose)
+    designable_residues = select_designable_residues(pose, bb_remodeled_residues, pre_moved_bb_pose=pre_moved_bb_pose)
     repackable_residues = find_surrounding_seqposes_noGP(pose, designable_residues, cutoff_distance=8)
 
     # Design everything
@@ -123,7 +123,7 @@ def fast_design(pose, bb_remodeled_residues, flex_bb=True, unmoved_bb_pose=None)
 
     return designable_residues, repackable_residues
 
-def make_one_design(output_path, input_pdb, bb_remodeled_residues, unmoved_bb_pdb=None):
+def make_one_design(output_path, input_pdb, bb_remodeled_residues, pre_moved_bb_pose=None):
     '''Make one design and dump the relative information.
     Args:
         output_path: path for the outputs
@@ -133,17 +133,12 @@ def make_one_design(output_path, input_pdb, bb_remodeled_residues, unmoved_bb_pd
     '''
     start_time = time.time()
 
-
     # Design
     
     pose = rosetta.core.pose.Pose()
     rosetta.core.import_pose.pose_from_file(pose, input_pdb)
 
-    if not (unmoved_bb_pdb is None):
-        unmoved_bb_pose = rosetta.core.pose.Pose()
-        rosetta.core.import_pose.pose_from_file(unmoved_bb_pose, unmoved_bb_pdb)
-   
-    designable_residues, repackable_residues = fast_design(pose, bb_remodeled_residues, unmoved_bb_pose=unmoved_bb_pose)
+    designable_residues, repackable_residues = fast_design(pose, bb_remodeled_residues, pre_moved_bb_pose=pre_moved_bb_pose)
 
     # Dump information
 
