@@ -35,8 +35,7 @@ def get_bb_remodeled_residues_for_LHL_designs(file_for_insertion_points):
     return bb_remodeled_residues
 
 def design(input_dir, data_path, pre_moved_bb_pdb, file_for_pre_moved_bb_insertion_points, num_jobs, job_id, num_seq_per_model=1, do_ex_rot_run=True):
-    pyrosetta.init()
-    #pyrosetta.init(options='-mute all')
+    pyrosetta.init(options='-mute all')
 
     # Get all the tasks
 
