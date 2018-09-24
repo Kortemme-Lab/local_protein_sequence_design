@@ -34,8 +34,9 @@ def get_bb_remodeled_residues_for_LHL_designs(file_for_insertion_points):
 
     return bb_remodeled_residues
 
-def design(input_dir, data_path, pre_moved_bb_pdb, file_for_pre_moved_bb_insertion_points, num_jobs, job_id, num_seq_per_model=1):
-    pyrosetta.init(options='-mute all')
+def design(input_dir, data_path, pre_moved_bb_pdb, file_for_pre_moved_bb_insertion_points, num_jobs, job_id, num_seq_per_model=1, do_ex_rot_run=True):
+    pyrosetta.init()
+    #pyrosetta.init(options='-mute all')
 
     # Get all the tasks
 
@@ -73,7 +74,7 @@ def design(input_dir, data_path, pre_moved_bb_pdb, file_for_pre_moved_bb_inserti
             output_path = os.path.join(data_path, str(i))
             os.makedirs(output_path, exist_ok=True)
             
-            LPSD.sequence_design.make_one_design(output_path, t[0], t[1], pre_moved_bb_pose=pre_moved_bb_pose)
+            LPSD.sequence_design.make_one_design(output_path, t[0], t[1], pre_moved_bb_pose=pre_moved_bb_pose, do_ex_rot_run=do_ex_rot_run)
 
 if __name__ == '__main__':
     data_path = sys.argv[1]
@@ -92,7 +93,7 @@ if __name__ == '__main__':
     pre_moved_bb_pdb = 'test_inputs/2lv8_inputs/2lv8_cleaned.pdb'
     file_for_pre_moved_bb_insertion_points = 'test_inputs/2lv8_inputs/2lv8_insertion_points.json'
    
-    design(input_dir, data_path, pre_moved_bb_pdb, file_for_pre_moved_bb_insertion_points, num_jobs, job_id, num_seq_per_model=1)
+    design(input_dir, data_path, pre_moved_bb_pdb, file_for_pre_moved_bb_insertion_points, num_jobs, job_id, num_seq_per_model=1, do_ex_rot_run=False)
 
     end_time = time.time()
     print('Finish job in {0} seconds.'.format(int(end_time - start_time)))

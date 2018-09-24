@@ -76,7 +76,7 @@ def get_move_map(bb_movable_residues, sc_movable_residues, movable_jumps):
     
     return mm
 
-def fast_design(pose, bb_remodeled_residues, flex_bb=True, pre_moved_bb_pose=None):
+def fast_design(pose, bb_remodeled_residues, flex_bb=True, pre_moved_bb_pose=None, do_ex_rot_run=True):
     '''Do fast design
     Return:
         designable_residues_all, repackable_residues
@@ -110,20 +110,26 @@ def fast_design(pose, bb_remodeled_residues, flex_bb=True, pre_moved_bb_pose=Non
     fast_design.set_task_factory(task_factory)
     fast_design.set_movemap(move_map)
     fast_design.apply(pose)
-
-    # Do the final design with extra rotamers
     
-    task_factory_ex_rot = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True)
-    fast_design.set_task_factory(task_factory_ex_rot)
-    fast_design.apply(pose)
-
-    rot_trial.task_factory(task_factory_ex_rot)
+    rot_trial.task_factory(task_factory)
     for i in range(3):
         rot_trial.apply(pose)
 
+    # Do the final design with extra rotamers
+   
+    if do_ex_rot_run: 
+
+        task_factory_ex_rot = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True)
+        fast_design.set_task_factory(task_factory_ex_rot)
+        fast_design.apply(pose)
+
+        rot_trial.task_factory(task_factory_ex_rot)
+        for i in range(3):
+            rot_trial.apply(pose)
+
     return designable_residues, repackable_residues
 
-def make_one_design(output_path, input_pdb, bb_remodeled_residues, pre_moved_bb_pose=None):
+def make_one_design(output_path, input_pdb, bb_remodeled_residues, pre_moved_bb_pose=None, do_ex_rot_run=True):
     '''Make one design and dump the relative information.
     Args:
         output_path: path for the outputs
@@ -138,7 +144,7 @@ def make_one_design(output_path, input_pdb, bb_remodeled_residues, pre_moved_bb_
     pose = rosetta.core.pose.Pose()
     rosetta.core.import_pose.pose_from_file(pose, input_pdb)
 
-    designable_residues, repackable_residues = fast_design(pose, bb_remodeled_residues, pre_moved_bb_pose=pre_moved_bb_pose)
+    designable_residues, repackable_residues = fast_design(pose, bb_remodeled_residues, pre_moved_bb_pose=pre_moved_bb_pose, do_ex_rot_run=do_ex_rot_run)
 
     # Dump information
 
