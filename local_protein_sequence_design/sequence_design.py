@@ -98,9 +98,18 @@ def fast_design(pose, bb_remodeled_residues, flex_bb=True, pre_moved_bb_pose=Non
     designable_residues = select_designable_residues(pose, bb_remodeled_residues, pre_moved_bb_pose=pre_moved_bb_pose)
     repackable_residues = find_surrounding_seqposes_noGP(pose, designable_residues, cutoff_distance=8)
 
+    # Set score function
+
+    sfxn = rosetta.core.scoring.get_score_function()
+    if sequence_symmetry_map:
+        set_non_crystal_symmetry(pose, sfxn, sequence_symmetry_map)
+
+    fast_design.set_scorefxn(sfxn)
+    rot_trial.score_function(sfxn)
+
     # Design everything
 
-    task_factory = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=False, sequence_symmetry_map=sequence_symmetry_map)
+    task_factory = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=False)
     
     if flex_bb:
         move_map = get_move_map([i for i in range(1, pose.size() + 1)], [], [])
@@ -119,7 +128,7 @@ def fast_design(pose, bb_remodeled_residues, flex_bb=True, pre_moved_bb_pose=Non
    
     if do_ex_rot_run: 
 
-        task_factory_ex_rot = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True, sequence_symmetry_map=sequence_symmetry_map)
+        task_factory_ex_rot = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True)
         fast_design.set_task_factory(task_factory_ex_rot)
         fast_design.apply(pose)
 
