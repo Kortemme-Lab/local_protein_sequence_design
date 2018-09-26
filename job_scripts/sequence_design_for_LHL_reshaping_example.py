@@ -29,12 +29,15 @@ def get_bb_remodeled_residues_for_LHL_designs(file_for_insertion_points):
     bb_remodeled_residues = []
 
     for ip in insertion_points:
-        for i in range(ip['start'], ip['stop'] + 1):
+        start = ip['start'] + 1 if ip['start_ss'] == 'N' else ip['start']
+        stop = ip['stop'] - 1 if ip['stop_ss'] == 'C' else ip['stop']
+
+        for i in range(start, stop + 1):
             bb_remodeled_residues.append(i)
 
     return bb_remodeled_residues
-
-def design(input_dir, data_path, pre_moved_bb_pdb, file_for_pre_moved_bb_insertion_points, num_jobs, job_id, num_seq_per_model=1, do_ex_rot_run=True):
+def design(input_dir, data_path, pre_moved_bb_pdb, file_for_pre_moved_bb_insertion_points, num_jobs, job_id, num_seq_per_model=1, do_ex_rot_run=True,
+        sequence_symmetry_map_generator=None):
     pyrosetta.init(options='-mute all')
 
     # Get all the tasks
@@ -47,12 +50,21 @@ def design(input_dir, data_path, pre_moved_bb_pdb, file_for_pre_moved_bb_inserti
         model_id = s.split('.')[0].split('_')[-1]
         file_for_insertion_points = os.path.join(input_dir, 'insertion_points_{0}.json'.format(model_id))
 
+        # Get the bb remodeled residues
+
         bb_remodeled_residues = get_bb_remodeled_residues_for_LHL_designs(file_for_insertion_points)
+
+        # Get the sequence symmetry map
+
+        if sequence_symmetry_map_generator:
+            sequence_symmetry_map = sequence_symmetry_map_generator(file_for_insertion_points)
+        else:
+            sequence_symmetry_map = None
 
         # Make multiple designs for each of the structure
 
         for i in range(num_seq_per_model):
-            tasks.append( (os.path.join(input_dir, s), bb_remodeled_residues) )
+            tasks.append( (os.path.join(input_dir, s), bb_remodeled_residues, sequence_symmetry_map) )
 
     # Get the pose for the pre-moved structure for the remodeled residues. 
 
@@ -73,7 +85,8 @@ def design(input_dir, data_path, pre_moved_bb_pdb, file_for_pre_moved_bb_inserti
             output_path = os.path.join(data_path, str(i))
             os.makedirs(output_path, exist_ok=True)
             
-            LPSD.sequence_design.make_one_design(output_path, t[0], t[1], pre_moved_bb_pose=pre_moved_bb_pose, do_ex_rot_run=do_ex_rot_run)
+            LPSD.sequence_design.make_one_design(output_path, t[0], t[1], pre_moved_bb_pose=pre_moved_bb_pose, do_ex_rot_run=do_ex_rot_run,
+                    sequence_symmetry_map=t[2])
 
 if __name__ == '__main__':
     data_path = sys.argv[1]

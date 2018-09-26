@@ -76,7 +76,7 @@ def get_move_map(bb_movable_residues, sc_movable_residues, movable_jumps):
     
     return mm
 
-def fast_design(pose, bb_remodeled_residues, flex_bb=True, pre_moved_bb_pose=None, do_ex_rot_run=True):
+def fast_design(pose, bb_remodeled_residues, flex_bb=True, pre_moved_bb_pose=None, do_ex_rot_run=True, sequence_symmetry_map=None):
     '''Do fast design
     Return:
         designable_residues_all, repackable_residues
@@ -100,7 +100,7 @@ def fast_design(pose, bb_remodeled_residues, flex_bb=True, pre_moved_bb_pose=Non
 
     # Design everything
 
-    task_factory = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=False)
+    task_factory = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=False, sequence_symmetry_map=sequence_symmetry_map)
     
     if flex_bb:
         move_map = get_move_map([i for i in range(1, pose.size() + 1)], [], [])
@@ -119,7 +119,7 @@ def fast_design(pose, bb_remodeled_residues, flex_bb=True, pre_moved_bb_pose=Non
    
     if do_ex_rot_run: 
 
-        task_factory_ex_rot = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True)
+        task_factory_ex_rot = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True, sequence_symmetry_map=sequence_symmetry_map)
         fast_design.set_task_factory(task_factory_ex_rot)
         fast_design.apply(pose)
 
@@ -129,7 +129,7 @@ def fast_design(pose, bb_remodeled_residues, flex_bb=True, pre_moved_bb_pose=Non
 
     return designable_residues, repackable_residues
 
-def make_one_design(output_path, input_pdb, bb_remodeled_residues, pre_moved_bb_pose=None, do_ex_rot_run=True):
+def make_one_design(output_path, input_pdb, bb_remodeled_residues, pre_moved_bb_pose=None, do_ex_rot_run=True, sequence_symmetry_map=None):
     '''Make one design and dump the relative information.
     Args:
         output_path: path for the outputs
@@ -144,7 +144,8 @@ def make_one_design(output_path, input_pdb, bb_remodeled_residues, pre_moved_bb_
     pose = rosetta.core.pose.Pose()
     rosetta.core.import_pose.pose_from_file(pose, input_pdb)
 
-    designable_residues, repackable_residues = fast_design(pose, bb_remodeled_residues, pre_moved_bb_pose=pre_moved_bb_pose, do_ex_rot_run=do_ex_rot_run)
+    designable_residues, repackable_residues = fast_design(pose, bb_remodeled_residues, pre_moved_bb_pose=pre_moved_bb_pose, 
+            do_ex_rot_run=do_ex_rot_run, sequence_symmetry_map=sequence_symmetry_map)
 
     # Dump information
 

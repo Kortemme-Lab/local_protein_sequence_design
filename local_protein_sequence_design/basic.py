@@ -2,7 +2,7 @@ import pyrosetta
 from pyrosetta import rosetta
 
 
-def get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True, limit_aro_chi2=True, layered_design=True):
+def get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True, limit_aro_chi2=True, layered_design=True, sequence_symmetry_map=None):
     '''Get a task factory given the designable and repackable residues.'''
     def list_to_str(l):
         return ','.join(list(str(i) for i in l))
@@ -57,5 +57,50 @@ def get_task_factory(pose, designable_residues, repackable_residues, extra_rotam
         </LayerDesign>''')
         task_factory.push_back(ld)
 
+    if sequence_symmetry_map:
+        task_factory.push_back(get_link_residues_task_operation(sequence_symmetry_map, pose.size()))
+
     return task_factory
 
+def get_link_residues_task_operation(sequence_symmetry_map, pose_size):
+    '''Get a LinkResidues task operation for a sequence_symmetry_map.
+    A sequence_symmetry_map is defined as a dictionary 
+    {(target_start, target_stop) : (source_start, source_stop)}
+    
+    Note: Although I implementated this function. It seems not useful
+    because LinkResidues task operation usually causes seg-fault.
+    I think that the problem is due to two linked residues have different
+    allowed residues.
+    '''
+    # Get the equivalent groups.
+    # Note the current implementation only works if no source residue
+    # is also a target residue 
+
+    equivalent_groups = {}
+
+    for target_seg in sequence_symmetry_map.keys():
+        target_start = target_seg[0]
+        target_stop = target_seg[1]
+        source_start = sequence_symmetry_map[target_seg][0]
+        source_stop = sequence_symmetry_map[target_seg][1]
+
+        for i in range(target_stop - target_start + 1):
+            t = target_start + i
+            s = source_start + i
+
+            if s in equivalent_groups.keys():
+                equivalent_groups[s].append(t)
+            else:
+                equivalent_groups[s] = [s, t]
+
+    # Create the LinkResidues task operation
+
+    link_residues = rosetta.protocols.task_operations.LinkResidues()
+
+    for k in equivalent_groups.keys():
+        link_residues.add_group(','.join(str(x) for x in equivalent_groups[k] if x != 1 and x != pose_size))
+
+    link_residues.add_group('1,1')
+    link_residues.add_group('{0},{0}'.format(pose_size))
+
+    return link_residues
