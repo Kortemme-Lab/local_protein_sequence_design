@@ -170,6 +170,9 @@ def make_one_design(output_path, input_pdb, bb_remodeled_residues, pre_moved_bb_
             'score' :  pose.energies().total_energy(), 
             'design_time' : end_time - start_time,
             }
+    
+    if sequence_symmetry_map:
+        info_dict['sequence_symmetry_map'] = sequence_symmetry_map
 
     with open(os.path.join(output_path, 'design_info.json'), 'w') as f:
         json.dump(info_dict, f)
