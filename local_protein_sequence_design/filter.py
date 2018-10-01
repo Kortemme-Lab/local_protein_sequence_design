@@ -202,11 +202,24 @@ def generate_filter_scores(filter_info_file, pose, designable_residues, repackab
     filter_scores['bb_remodeled_residues_helix_complementarity'] = get_helix_complementarity_score(pose, bb_remodeled_residues)
 
     # Get fragment quality analysis scores for the backbone remodeled region
-    
-    bb_remodeled_worst_fragment_crmsd, bb_remodeled_mean_fragment_crmsd = get_fragment_quality_scores(pose, bb_remodeled_residues)
+
+    ss = site_settings.load_site_settings()
+    fqa_dependencies = ['runpsipred_single', 'csblast', 'blastpgp', 'placeholder_seqs', 'sparksx_path',
+        'fragment_picker', 'vall', 'fragment_quality_analysis_weights','rosetta_database_fragment_picking']
+
+    fqa_dependencies_satisfied = True
+
+    for d in fqa_dependencies:
+        if (not (d in ss.keys())) or ss[d] == '':
+            fqa_dependencies_satisfied = False
+
+    if fqa_dependencies_satisfied:
+        bb_remodeled_worst_fragment_crmsd, bb_remodeled_mean_fragment_crmsd = get_fragment_quality_scores(pose, bb_remodeled_residues)
    
-    filter_scores['bb_remodeled_worst_fragment_crmsd'] = bb_remodeled_worst_fragment_crmsd
-    filter_scores['bb_remodeled_mean_fragment_crmsd'] = bb_remodeled_mean_fragment_crmsd
+        filter_scores['bb_remodeled_worst_fragment_crmsd'] = bb_remodeled_worst_fragment_crmsd
+        filter_scores['bb_remodeled_mean_fragment_crmsd'] = bb_remodeled_mean_fragment_crmsd
+    else:
+        print('Warning: missing dependencies for fragment quality analysis. Check your site settings!')
 
     with open(filter_info_file, 'w') as f:
         json.dump(filter_scores, f)
