@@ -44,3 +44,17 @@ Do the second round of design using the result of the first round of design as t
 ./run_jobs.py sequence_design_for_LHL_reshaping_iteration_2_example job_scripts/sequence_design_for_LHL_reshaping_iteration_2_example.py
 ```
 This command will create the directory `data/sequence_design_for_LHL_reshaping_examples` and dump the designed structure into it. Note that the second iteration of design will be finished in much longer time the the first iteration, because we are using `ex1 ex2` rotamers in this round.
+
+### Select good designs
+In this example, we only make 1 design, so there is no point select good designs. But in a real problem, you want to do the selection. First filter the designs using the command described above. Then you may want to select the good designs using the script `job_scripts/select_designs.py`.
+
+## Production Run
+For a real problem, copy the example scripts to the `job_scripts/user` directory and edit them for inputs and options. Run a job script by
+```
+./run_jobs.py my_output_data_set job_scripts/user/my_script.py
+```
+A real design problem is usually too computationaly expensive to ran on a single computer. You'd better use a cluster. To submit a job to the UCSF QB3 cluster. Just do
+```
+./run_jobs.py my_output_data_set job_scripts/user/my_script.py -d SGE -n 100
+```
+This command will use 100 CPUs to run the job.
