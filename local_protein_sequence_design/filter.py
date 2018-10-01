@@ -10,6 +10,7 @@ from local_protein_sequence_design import site_settings
 from local_protein_sequence_design import fragment_quality_analysis
 from local_protein_sequence_design import IO 
 from local_protein_sequence_design.basic import *
+from local_protein_sequence_design import hydrogen_bonds
 
 
 def get_residue_selector_for_residues(residues):
@@ -29,66 +30,6 @@ def residues_max_energy(pose, residues):
     sfxn(pose)
 
     return max(list(pose.energies().residue_total_energy(i) for i in residues))
-
-def get_buhs_for_each_res(pose):
-    '''Return a list of numbers of buried unsatisfied
-    hbonds for each residue.
-    '''
-    bupc = rosetta.protocols.simple_pose_metric_calculators.BuriedUnsatisfiedPolarsCalculator(
-            'default', 'default')
-
-    sfxn = rosetta.core.scoring.get_score_function()
-    sfxn(pose)
-  
-    return json.loads(bupc.get('residue_bur_unsat_polars', pose))
-
-def get_backrub_ensemble_consensus_buhs_for_each_res(pose):
-    '''Get the list of numbers of ensemble consensus buried unsatisfied
-    hbonds for each residue.
-    '''
-    br_mover = rosetta.protocols.backrub.BackrubMover()
-    br_mover.set_max_atoms(4)
-    
-    buhs_for_each_res = get_buhs_for_each_res(pose)
-    
-    # Update the number of segments
-    
-    tmp_pose = pose.clone()
-    br_mover.apply(tmp_pose)
-
-    # Iterate throught all segments
-
-    for i in range(1, br_mover.num_segments() + 1):
-       
-        # For each segment, generate 5 structures
-        
-        for j in range(5):
-            tmp_pose = pose.clone()
-            
-            br_mover.set_next_segment_id(i)
-            br_mover.apply(tmp_pose)
-            tmp_buh_for_each_res = get_buhs_for_each_res(tmp_pose)
-           
-            # Only keep the consensus buried unsats
-
-            for k in range(len(buhs_for_each_res)):
-                buhs_for_each_res[k] = min(buhs_for_each_res[k], tmp_buh_for_each_res[k])
-
-    return buhs_for_each_res
-
-def get_num_buried_unsatisfied_hbonds(pose, residues):
-    '''Get the number of buried unsatisfied hbonds
-    for each of the given set of residues.
-    '''
-    bupc = rosetta.protocols.simple_pose_metric_calculators.BuriedUnsatisfiedPolarsCalculator(
-            'default', 'default')
-
-    sfxn = rosetta.core.scoring.get_score_function()
-    sfxn(pose)
-    
-    buhs_for_each_res = json.loads(bupc.get('residue_bur_unsat_polars', pose))
-
-    return sum(buhs_for_each_res[i - 1] for i in residues)
 
 def get_num_over_saturated_hbond_acceptors(pose, acceptor_residues):
     '''Get the number of over saturated hbond acceptors for
@@ -199,17 +140,11 @@ def generate_filter_scores(filter_info_file, pose, designable_residues, repackab
     filter_scores['movable_residues_max_energy'] = residues_max_energy(pose, movable_residues)
     filter_scores['all_residues_max_energy'] = residues_max_energy(pose, all_residues)
 
-    # Get the number of buried unsatisfied hbonds
+    # Get the scores for buried unsatisfied hbonds
 
-    filter_scores['buried_unsat_for_designable_residues'] = get_num_buried_unsatisfied_hbonds(pose, designable_residues)
-    filter_scores['buried_unsat_for_movable_residues'] = get_num_buried_unsatisfied_hbonds(pose, movable_residues)
-    filter_scores['buried_unsat_for_all_residues'] = get_num_buried_unsatisfied_hbonds(pose, all_residues)
-
-    backrub_ensemble_consensus_buhs_for_each_res = get_backrub_ensemble_consensus_buhs_for_each_res(pose)
-
-    filter_scores['backrub_ensemble_consensus_buhs_for_all_residues'] = sum(backrub_ensemble_consensus_buhs_for_each_res)
-    filter_scores['backrub_ensemble_consensus_buhs_for_designable_residues'] = sum(backrub_ensemble_consensus_buhs_for_each_res[i + 1] for i in designable_residues)
-    filter_scores['backrub_ensemble_consensus_buhs_for_movable_residues'] = sum(backrub_ensemble_consensus_buhs_for_each_res[i + 1] for i in movable_residues)
+    hbond_scores = hydrogen_bonds.get_hbond_metrics(pose, bb_remodeled_residues, designable_residues, movable_residues)
+    for k in hbond_scores.keys():
+        filter_scores[k] = hbond_scores[k]
 
     # Get the number of over saturated hbond acceptors
 
