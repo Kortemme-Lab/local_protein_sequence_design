@@ -76,7 +76,7 @@ def get_move_map(bb_movable_residues, sc_movable_residues, movable_jumps):
     
     return mm
 
-def fast_design(pose, bb_remodeled_residues, flex_bb=True, pre_moved_bb_pose=None, do_ex_rot_run=True, sequence_symmetry_map=None):
+def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_residues, flex_bb=True, do_ex_rot_run=True, sequence_symmetry_map=None):
     '''Do fast design
     Return:
         designable_residues_all, repackable_residues
@@ -92,11 +92,6 @@ def fast_design(pose, bb_remodeled_residues, flex_bb=True, pre_moved_bb_pose=Non
     ''')
     fast_design = xmlobj.get_mover('fastdes')
     rot_trial = xmlobj.get_mover('rot_trial')
-
-    # Find designable and repackable residues
-   
-    designable_residues = select_designable_residues(pose, bb_remodeled_residues, pre_moved_bb_pose=pre_moved_bb_pose)
-    repackable_residues = find_surrounding_seqposes_noGP(pose, designable_residues, cutoff_distance=8)
 
     # Set score function
 
@@ -138,7 +133,8 @@ def fast_design(pose, bb_remodeled_residues, flex_bb=True, pre_moved_bb_pose=Non
 
     return designable_residues, repackable_residues
 
-def make_one_design(output_path, input_pdb, bb_remodeled_residues, pre_moved_bb_pose=None, do_ex_rot_run=True, sequence_symmetry_map=None):
+def make_one_design(output_path, input_pdb, bb_remodeled_residues, designable_residues=None, repackable_residues=None,
+        pre_moved_bb_pose=None, do_ex_rot_run=True, sequence_symmetry_map=None):
     '''Make one design and dump the relative information.
     Args:
         output_path: path for the outputs
@@ -153,7 +149,13 @@ def make_one_design(output_path, input_pdb, bb_remodeled_residues, pre_moved_bb_
     pose = rosetta.core.pose.Pose()
     rosetta.core.import_pose.pose_from_file(pose, input_pdb)
 
-    designable_residues, repackable_residues = fast_design(pose, bb_remodeled_residues, pre_moved_bb_pose=pre_moved_bb_pose, 
+    # Find designable and repackable residues
+  
+    if (designable_residues is None) or (repackable_residues is None):
+        designable_residues = select_designable_residues(pose, bb_remodeled_residues, pre_moved_bb_pose=pre_moved_bb_pose)
+        repackable_residues = find_surrounding_seqposes_noGP(pose, designable_residues, cutoff_distance=8)
+
+    fast_design(pose, bb_remodeled_residues, designable_residues, repackable_residues, 
             do_ex_rot_run=do_ex_rot_run, sequence_symmetry_map=sequence_symmetry_map)
 
     # Dump information
