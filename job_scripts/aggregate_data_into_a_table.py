@@ -44,8 +44,9 @@ def get_data_frame_for_design(design_path, design_id):
 def generate_summary_table_for_dataset(path_to_the_dataset):
     '''Generate a summary table for a dataset'''
     df = None
+    designs = os.listdir(path_to_the_dataset)
     
-    for design in os.listdir(path_to_the_dataset):
+    for i, design in enumerate(designs): 
         df_for_design = get_data_frame_for_design(os.path.join(path_to_the_dataset, design), design)
 
         if not (df_for_design is None):
@@ -54,6 +55,11 @@ def generate_summary_table_for_dataset(path_to_the_dataset):
 
             else:
                 df = df.append(df_for_design, ignore_index=True)
+
+        if i % 100 == 0:
+            print('\r finish loading {0}/{1} designs.'.format(i + 1, len(designs)), end='')
+
+    print('')
 
     df.to_csv(os.path.join(path_to_the_dataset, 'summary_table.tsv'),
         sep='\t', index=False)
