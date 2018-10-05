@@ -7,6 +7,7 @@ Usage:
 import sys
 import os
 import json
+import time
 
 import pandas as pd
 
@@ -45,6 +46,7 @@ def generate_summary_table_for_dataset(path_to_the_dataset):
     '''Generate a summary table for a dataset'''
     df = None
     designs = os.listdir(path_to_the_dataset)
+    start_time = time.time()
     
     for i, design in enumerate(designs): 
         df_for_design = get_data_frame_for_design(os.path.join(path_to_the_dataset, design), design)
@@ -57,7 +59,8 @@ def generate_summary_table_for_dataset(path_to_the_dataset):
                 df = df.append(df_for_design, ignore_index=True)
 
         if i % 100 == 0:
-            print('\r finish loading {0}/{1} designs.'.format(i + 1, len(designs)), end='')
+            current_time = time.time()
+            print('\r finish loading {0}/{1} designs in {2} seconds.'.format(i + 1, len(designs), current_time - start_time), end='')
 
     print('')
 
