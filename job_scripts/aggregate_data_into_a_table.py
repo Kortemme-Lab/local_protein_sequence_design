@@ -39,14 +39,6 @@ def get_dictionary_for_design(design_path, design_id):
 
     return design_info
 
-
-    # Make a pandas data frame
-
-    keys = list(design_info.keys())
-    values = [design_info[k] for k in keys]
-
-    return pd.DataFrame([[design_id] + values], columns=['design_id'] + keys)
-
 def generate_summary_table_for_dataset(path_to_the_dataset):
     '''Generate a summary table for a dataset'''
     df = None
@@ -61,17 +53,27 @@ def generate_summary_table_for_dataset(path_to_the_dataset):
         if not (d_for_d is None):
             design_dictionarys.append(d_for_d)
 
+        # Write to disk every time read 5000 designs
+
+        if i % 5000 == 0 or i + 1 == len(designs):
+            df = pd.DataFrame(design_dictionarys)
+            
+            table_path = os.path.join(path_to_the_dataset, 'summary_table.tsv')
+            
+            write_header = True
+            if os.path.exists(table_path):
+                write_header = False
+
+            with open(table_path, 'a') as f:
+                df.to_csv(f, sep='\t', index=False, header=write_header)
+        
+            design_dictionarys = []
+        
         if i % 100 == 0:
             current_time = time.time()
             print('\r finish loading {0}/{1} designs in {2} seconds.'.format(i + 1, len(designs), current_time - start_time), end='')
 
     print('')
-
-    df = pd.DataFrame(design_dictionarys)
-
-    df.to_csv(os.path.join(path_to_the_dataset, 'summary_table.tsv'),
-        sep='\t', index=False)
-        
 
 if __name__ == '__main__':
     path_to_the_dataset = sys.argv[1]
