@@ -55,7 +55,7 @@ def generate_summary_table_for_dataset(path_to_the_dataset):
 
         # Write to disk every time read 5000 designs
 
-        if i % 5000 == 0 or i + 1 == len(designs):
+        if len(design_dictionarys) != 0 and (i % 5000 == 0 or i + 1 == len(designs)):
             df = pd.DataFrame(design_dictionarys)
             
             table_path = os.path.join(path_to_the_dataset, 'summary_table.tsv')
