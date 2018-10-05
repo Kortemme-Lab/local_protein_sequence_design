@@ -12,8 +12,8 @@ import time
 import pandas as pd
 
 
-def get_data_frame_for_design(design_path, design_id):
-    '''Get the data frame for a design.
+def get_dictionary_for_design(design_path, design_id):
+    '''Get the information dictionary for a design.
     Return None if there is missing information.
     '''
     design_info_file = os.path.join(design_path, 'design_info.json')
@@ -35,6 +35,11 @@ def get_data_frame_for_design(design_path, design_id):
     for k in filter_info.keys():
         design_info[k] = filter_info[k]
 
+    design_info['design_id'] = design_id
+
+    return design_info
+
+
     # Make a pandas data frame
 
     keys = list(design_info.keys())
@@ -47,22 +52,22 @@ def generate_summary_table_for_dataset(path_to_the_dataset):
     df = None
     designs = os.listdir(path_to_the_dataset)
     start_time = time.time()
-    
+   
+    design_dictionarys = []
+
     for i, design in enumerate(designs): 
-        df_for_design = get_data_frame_for_design(os.path.join(path_to_the_dataset, design), design)
+        d_for_d = get_dictionary_for_design(os.path.join(path_to_the_dataset, design), design)
 
-        if not (df_for_design is None):
-            if df is None:
-                df = df_for_design
-
-            else:
-                df = df.append(df_for_design, ignore_index=True)
+        if not (d_for_d is None):
+            design_dictionarys.append(d_for_d)
 
         if i % 100 == 0:
             current_time = time.time()
             print('\r finish loading {0}/{1} designs in {2} seconds.'.format(i + 1, len(designs), current_time - start_time), end='')
 
     print('')
+
+    df = pd.DataFrame(design_dictionarys)
 
     df.to_csv(os.path.join(path_to_the_dataset, 'summary_table.tsv'),
         sep='\t', index=False)
