@@ -18,7 +18,10 @@ def plot_filter_score(data_frame, score_term):
     scores = []
 
     for i in data_frame.index:
-        scores.append(data_frame[score_term][i])
+        score = data_frame[score_term][i]
+        
+        if not np.isnan(score):
+            scores.append(score)
 
     # Make the plot
 
