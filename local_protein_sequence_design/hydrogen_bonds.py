@@ -19,6 +19,11 @@ def get_buhs_for_each_atom(pose):
     Return:
         buried_unsat_acceptors, buried_unsat_donors each is a list of pairs (seqpos, atom_number).
     '''
+    # Score the pose before finding the hydrogen bonds. Otherwise Hbond won't be found correctly
+    
+    sfxn = rosetta.core.scoring.get_score_function()
+    sfxn(pose)
+
     # Get all hbonds of the structure
 
     hbset = rosetta.core.scoring.hbonds.HBondSet(pose, bb_only=False)
