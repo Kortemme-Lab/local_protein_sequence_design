@@ -92,20 +92,12 @@ def superimpose_poses_by_residues(pose_source, residues_source, pose_target, res
     pose_source.apply_transform_Rx_plus_v(np_array_to_xyzM(M), 
             np_array_to_xyzV(t))
 
-def get_sequence_alignment_for_two_designs(design_path_source, design_path_target):
-    '''Get the structure based sequence alignment for two designs.
+def get_target_to_source_residue_map(pose_source, pose_target):
+    '''Get the residue map from the target pose to the source pose.
     Note that the length of the target design should be longer or equal
     to the source design.
-    Return:
-        A string of aligned source sequence
+    The two poses should be pre-aligned by the fixed residues.
     '''
-    pose_source, bb_fixed_residues_source = load_design(design_path_source)
-    pose_target, bb_fixed_residues_target = load_design(design_path_target)
-
-    # Align the poses
-
-    superimpose_poses_by_residues(pose_source, bb_fixed_residues_source, pose_target, bb_fixed_residues_target)
-
     # Find all pairwise distances between all source residues and target residues
 
     s_t_distances = []
@@ -127,8 +119,25 @@ def get_sequence_alignment_for_two_designs(design_path_source, design_path_targe
         if len(res_map.keys()) == pose_source.size():
             break
 
+    return res_map
+
+def get_sequence_alignment_for_two_designs(design_path_source, design_path_target):
+    '''Get the structure based sequence alignment for two designs.
+    Note that the length of the target design should be longer or equal
+    to the source design.
+    Return:
+        A string of aligned source sequence
+    '''
+    pose_source, bb_fixed_residues_source = load_design(design_path_source)
+    pose_target, bb_fixed_residues_target = load_design(design_path_target)
+
+    # Align the poses
+
+    superimpose_poses_by_residues(pose_source, bb_fixed_residues_source, pose_target, bb_fixed_residues_target)
+
     # Generate the aligned sequence
 
+    res_map = get_target_to_source_residue_map(pose_source, pose_target)
     aligned_seq = [] 
 
     for i in range(1, pose_target.size()):
