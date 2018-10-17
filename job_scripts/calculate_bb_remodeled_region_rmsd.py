@@ -28,9 +28,19 @@ def load_design(design_path):
         pose_lowest_energy = pose_design.clone()
 
     with open(os.path.join(design_path, 'design_info.json'), 'r') as f:
-        bb_remodeled_residues = json.load(f)['bb_remodeled_residues']
+        bb_remodeled_residues_all = sorted(json.load(f)['bb_remodeled_residues'])
 
-    bb_fixed_residues = [i for i in range(1, pose_design.size() + 1) if not (i in bb_remodeled_residues)]
+    # Separate remodeled residues into segments 
+
+    separators = [i + 1 for i in range(len(bb_remodeled_residues_all) - 1) if bb_remodeled_residues_all[i] + 1 != bb_remodeled_residues_all[i + 1]] 
+    separators = [0] + separators + [len(bb_remodeled_residues_all)]
+   
+    bb_remodeled_residues = []
+    for i in range(len(separators) - 1):
+        bb_remodeled_residues.append(list(range(bb_remodeled_residues_all[separators[i]], 
+            bb_remodeled_residues_all[separators[i + 1] - 1] + 1)))
+    
+    bb_fixed_residues = [i for i in range(1, pose_design.size() + 1) if not (i in bb_remodeled_residues_all)]
 
     return pose_design, pose_lowest_energy, bb_remodeled_residues, bb_fixed_residues
 
@@ -109,34 +119,31 @@ def calc_backbone_RMSD(pose1, residues1, pose2, residues2):
 
     return RMSD(points1, points2)
 
-def get_target_to_source_residue_map(pose_source, pose_target):
-    '''Get the residue map from the target pose to the source pose.
-    Note that the length of the target design should be longer or equal
-    to the source design.
-    The two poses should be pre-aligned by the fixed residues.
+def rmsd_between_segments(pose1, segment1, pose2, segment2):
+    '''Calculate backbone RMSD between two segments.
+    A segment is defined as (start, stop).
     '''
-    # Find all pairwise distances between all source residues and target residues
+    # Swap the poses if the length of the second sse is longer than the first one
 
-    s_t_distances = []
+    if segment2[1] - segment2[0] < segment1[1] - segment1[0]:
+        pose1, segment1, pose2, segment2 = pose2, segment2, pose1, segment1
 
-    for i in range(1, pose_source.size() + 1):
-        for j in range(1, pose_target.size() + 1):
-            s_t_distances.append((i, j, pose_source.residue(i).xyz('CA').distance(pose_target.residue(j).xyz('CA'))))
+    length1 = segment1[1] - segment1[0] + 1
+    length_diff = (segment2[1] - segment2[0]) - (segment1[1] - segment1[0])
 
-    s_t_distances_sorted = sorted(s_t_distances, key=lambda x : x[2])
+    # Calculate RMSDs for different windows
 
-    # Get the map from target residues to source residues
+    rmsds = []
+    residues1 = list(range(segment1[0], segment1[1] + 1))
 
-    res_map = {}
+    for shift in range(length_diff + 1):
+        residues2 = list(range(segment2[0] + shift, segment2[0] + length1 + shift))
+    
+        rmsds.append(calc_backbone_RMSD(pose1, residues1, pose2, residues2))
 
-    for d in s_t_distances_sorted:
-        if (not (d[1] in res_map.keys())) and (not (d[0] in res_map.values())):
-            res_map[d[1]] = d[0]
+    # Return the lowest RMSD
 
-        if len(res_map.keys()) == pose_source.size():
-            break
-
-    return res_map
+    return min(rmsds)
 
 def calculate_bb_remodeled_region_rmsds(design_paths):
     '''Calculate the backbone RMSDs of the remodeled region.
@@ -168,29 +175,23 @@ def calculate_bb_remodeled_region_rmsds(design_paths):
             # Superimpose design j to design i
 
             superimpose_poses_by_residues(pose_lowest_energies[j], all_bb_fixed_residues[j], pose_designs[i], all_bb_fixed_residues[i])
+        
+            # Find the maped residues between the two structures
 
-            if pose_designs[i].size() > pose_lowest_energies[j].size():
-                pose_source = pose_lowest_energies[j]
-                pose_target = pose_designs[i]
-                remodeled_residues_target = all_bb_remodeled_residues[i]
-            else:
-                pose_target = pose_lowest_energies[j]
-                pose_source = pose_designs[i]
-                remodeled_residues_target = all_bb_remodeled_residues[j]
+            maped_residues_i = []
+            maped_residues_j = []
 
-            res_map = get_target_to_source_residue_map(pose_source, pose_target) 
+            for k in range(len(all_bb_remodeled_residues[i])):
+                seg_i = all_bb_remodeled_residues[i][k]
+                seg_j = all_bb_remodeled_residues[j][k]
 
-            # Calculate the RMSD between two remodeled regions
+                min_len = min(len(seg_i), len(seg_j))
+                maped_residues_i += seg_i[:min_len]
+                maped_residues_j += seg_j[:min_len]
 
-            remodeled_aligned_residues_source = [] 
-            remodeled_aligned_residues_target = [] 
+            # Calculate RMSD 
 
-            for k in res_map.keys():
-                if k in remodeled_residues_target:
-                    remodeled_aligned_residues_target.append(k)
-                    remodeled_aligned_residues_source.append(res_map[k])
-
-            rmsd = calc_backbone_RMSD(pose_source, remodeled_aligned_residues_source, pose_target, remodeled_aligned_residues_target)
+            rmsd = calc_backbone_RMSD(pose_lowest_energies[j], maped_residues_j, pose_lowest_energies[i], maped_residues_i)
 
             RMSDs[i].append(rmsd)
           
@@ -209,7 +210,7 @@ def plot_bb_remodeled_region_rmsds(design_paths):
     plt.close()
     
     fig, ax = plt.subplots()
-    cax = ax.imshow(np.transpose(rmsds), origin='lower', interpolation='nearest', cmap='bwr', vmin=0, vmax=5)
+    cax = ax.imshow(np.transpose(rmsds), origin='lower', interpolation='nearest', cmap='bwr', vmin=0, vmax=6)
 
     ## Plot RMSD values
     #for i in range(len(design_paths)):
