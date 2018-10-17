@@ -109,40 +109,34 @@ def calc_backbone_RMSD(pose1, residues1, pose2, residues2):
 
     return RMSD(points1, points2)
 
-def rmsd_between_segments(pose1, segment1, pose2, segment2):
-    '''Calculate backbone RMSD between two segments.
-    A segment is defined as (start, stop).
+def get_target_to_source_residue_map(pose_source, pose_target):
+    '''Get the residue map from the target pose to the source pose.
+    Note that the length of the target design should be longer or equal
+    to the source design.
+    The two poses should be pre-aligned by the fixed residues.
     '''
-    # Swap the poses if the length of the second sse is longer than the first one
+    # Find all pairwise distances between all source residues and target residues
 
-    if segment2[1] - segment2[0] < segment1[1] - segment1[0]:
-        pose1, segment1, pose2, segment2 = pose2, segment2, pose1, segment1
+    s_t_distances = []
 
-    length1 = segment1[1] - segment1[0] + 1
-    length_diff = (segment2[1] - segment2[0]) - (segment1[1] - segment1[0])
+    for i in range(1, pose_source.size() + 1):
+        for j in range(1, pose_target.size() + 1):
+            s_t_distances.append((i, j, pose_source.residue(i).xyz('CA').distance(pose_target.residue(j).xyz('CA'))))
 
-    # Calculate RMSDs for different windows
+    s_t_distances_sorted = sorted(s_t_distances, key=lambda x : x[2])
 
-    rmsds = []
-    residues1 = list(range(segment1[0], segment1[1] + 1))
+    # Get the map from target residues to source residues
 
-    for shift in range(length_diff + 1):
-        residues2 = list(range(segment2[0] + shift, segment2[0] + length1 + shift))
-    
-        rmsds.append(calc_backbone_RMSD(pose1, residues1, pose2, residues2))
+    res_map = {}
 
-    # Return the lowest RMSD
+    for d in s_t_distances_sorted:
+        if (not (d[1] in res_map.keys())) and (not (d[0] in res_map.values())):
+            res_map[d[1]] = d[0]
 
-    return min(rmsds)
+        if len(res_map.keys()) == pose_source.size():
+            break
 
-#def get_helix_segment_for_residues(pose, residues):
-#    '''Return the helix segment within the given residues.'''
-#    dssp = rosetta.core.scoring.dssp.Dssp(pose)
-#    secstruct = dssp.get_dssp_secstruct()
-#
-#    helix_residues = [r for r in residues if secstruct[r - 1] == 'H']
-#
-#    return (min(helix_residues), max(helix_residues))
+    return res_map
 
 def calculate_bb_remodeled_region_rmsds(design_paths):
     '''Calculate the backbone RMSDs of the remodeled region.
@@ -175,14 +169,30 @@ def calculate_bb_remodeled_region_rmsds(design_paths):
 
             superimpose_poses_by_residues(pose_lowest_energies[j], all_bb_fixed_residues[j], pose_designs[i], all_bb_fixed_residues[i])
 
-            # Get the movable segments
+            if pose_designs[i].size() > pose_lowest_energies[j].size():
+                pose_source = pose_lowest_energies[j]
+                pose_target = pose_designs[i]
+                remodeled_residues_target = all_bb_remodeled_residues[i]
+            else:
+                pose_target = pose_lowest_energies[j]
+                pose_source = pose_designs[i]
+                remodeled_residues_target = all_bb_remodeled_residues[j]
 
-            segment1 = (min(all_bb_remodeled_residues[i]), max(all_bb_remodeled_residues[i]))
-            segment2 = (min(all_bb_remodeled_residues[j]), max(all_bb_remodeled_residues[j]))
+            res_map = get_target_to_source_residue_map(pose_source, pose_target) 
 
-            seg_rmsd = rmsd_between_segments(pose_designs[i], segment1, pose_lowest_energies[j], segment2)
+            # Calculate the RMSD between two remodeled regions
 
-            RMSDs[i].append(seg_rmsd)
+            remodeled_aligned_residues_source = [] 
+            remodeled_aligned_residues_target = [] 
+
+            for k in res_map.keys():
+                if k in remodeled_residues_target:
+                    remodeled_aligned_residues_target.append(k)
+                    remodeled_aligned_residues_source.append(res_map[k])
+
+            rmsd = calc_backbone_RMSD(pose_source, remodeled_aligned_residues_source, pose_target, remodeled_aligned_residues_target)
+
+            RMSDs[i].append(rmsd)
           
     return RMSDs
 
@@ -199,7 +209,7 @@ def plot_bb_remodeled_region_rmsds(design_paths):
     plt.close()
     
     fig, ax = plt.subplots()
-    cax = ax.imshow(np.transpose(rmsds), origin='lower', interpolation='nearest', cmap='bwr')
+    cax = ax.imshow(np.transpose(rmsds), origin='lower', interpolation='nearest', cmap='bwr', vmin=0, vmax=5)
 
     ## Plot RMSD values
     #for i in range(len(design_paths)):
