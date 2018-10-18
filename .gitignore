@@ -6,3 +6,4 @@ debug
 dependencies/dependencies
 site_settings/site_settings.json
 job_scripts/user
+.idea/

@@ -76,7 +76,8 @@ def get_move_map(bb_movable_residues, sc_movable_residues, movable_jumps):
     
     return mm
 
-def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_residues, flex_bb=True, do_ex_rot_run=True, sequence_symmetry_map=None):
+def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_residues, flex_bb=True,
+                do_ex_rot_run=True, sequence_symmetry_map=None, relax_script="default"):
     '''Do fast design
     Return:
         designable_residues_all, repackable_residues
@@ -86,10 +87,10 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
     xmlobj = rosetta.protocols.rosetta_scripts.XmlObjects.create_from_string(
     '''
     <MOVERS>
-        <FastDesign name="fastdes" clear_designable_residues="0" repeats="1" ramp_down_constraints="1"/>
+        <FastDesign name="fastdes" repeats="1" ramp_down_constraints="1" relaxscript="{0}"/>
         <RotamerTrialsMover name="rot_trial" />
     </MOVERS>
-    ''')
+    '''.format(relax_script))
     fast_design = xmlobj.get_mover('fastdes')
     rot_trial = xmlobj.get_mover('rot_trial')
 
@@ -134,7 +135,7 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
     return designable_residues, repackable_residues
 
 def make_one_design(output_path, input_pdb, bb_remodeled_residues, designable_residues=None, repackable_residues=None,
-        pre_moved_bb_pose=None, do_ex_rot_run=True, sequence_symmetry_map=None):
+        pre_moved_bb_pose=None, do_ex_rot_run=True, sequence_symmetry_map=None, relax_script="default"):
     '''Make one design and dump the relative information.
     Args:
         output_path: path for the outputs
@@ -156,7 +157,7 @@ def make_one_design(output_path, input_pdb, bb_remodeled_residues, designable_re
         repackable_residues = find_surrounding_seqposes_noGP(pose, designable_residues, cutoff_distance=8)
 
     fast_design(pose, bb_remodeled_residues, designable_residues, repackable_residues, 
-            do_ex_rot_run=do_ex_rot_run, sequence_symmetry_map=sequence_symmetry_map)
+            do_ex_rot_run=do_ex_rot_run, sequence_symmetry_map=sequence_symmetry_map, relax_script=relax_script)
 
     # Dump information
 
