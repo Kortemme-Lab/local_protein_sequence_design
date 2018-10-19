@@ -20,7 +20,8 @@ def print_pymol_selection_for_residues(pose, residues):
 
     print('sele ' + ' or '.join(res_commands))
 
-def design(input_dir, data_path, selected_designs_file, num_jobs, job_id, num_seq_per_model=1, do_ex_rot_run=True):
+def design(input_dir, data_path, selected_designs_file, num_jobs, job_id, num_seq_per_model=1, do_ex_rot_run=True,
+           relax_script="default"):
     pyrosetta.init(options='-mute all')
 
     # Get all the tasks
@@ -47,9 +48,17 @@ def design(input_dir, data_path, selected_designs_file, num_jobs, job_id, num_se
             if not ('sequence_symmetry_map' in input_design_info.keys()):
                 input_design_info['sequence_symmetry_map'] = None
 
-            LPSD.sequence_design.make_one_design(output_path, input_pdb, input_design_info['bb_remodeled_residues'],
-                    designable_residues=input_design_info['designable_residues'],repackable_residues=input_design_info['repackable_residues'],
-                    do_ex_rot_run=do_ex_rot_run, sequence_symmetry_map=input_design_info['sequence_symmetry_map'])
+            LPSD.sequence_design.make_one_design(
+                output_path,
+                input_pdb,
+                input_design_info['bb_remodeled_residues'],
+                designable_residues=input_design_info['designable_residues'],
+                repackable_residues=input_design_info['repackable_residues'],
+                do_ex_rot_run=do_ex_rot_run,
+                sequence_symmetry_map=input_design_info['sequence_symmetry_map'],
+                relax_script=relax_script
+            )
+
 
 if __name__ == '__main__':
     data_path = sys.argv[1]
@@ -61,13 +70,13 @@ if __name__ == '__main__':
         num_jobs = int(sys.argv[2])
         job_id = int(sys.argv[3]) - 1
 
-    
     start_time = time.time()
    
     input_dir = 'data/sequence_design_for_LHL_reshaping_example'
     selected_designs_file = 'data/sequence_design_for_LHL_reshaping_example/selected_designs_for_next_iteration.tsv'
 
-    design(input_dir, data_path, selected_designs_file, num_jobs, job_id, num_seq_per_model=1, do_ex_rot_run=True)
+    design(input_dir, data_path, selected_designs_file, num_jobs, job_id, num_seq_per_model=1, do_ex_rot_run=True,
+           relax_script="default")
 
     end_time = time.time()
     print('Finish job in {0} seconds.'.format(int(end_time - start_time)))
