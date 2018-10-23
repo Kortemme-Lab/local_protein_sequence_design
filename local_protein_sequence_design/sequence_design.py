@@ -174,7 +174,12 @@ def make_one_design(output_path, input_pdb, bb_remodeled_residues, designable_re
             }
     
     if sequence_symmetry_map:
-        info_dict['sequence_symmetry_map'] = sequence_symmetry_map
+        serialized_sequence_symmetry_map = []
+        for k in sequence_symmetry_map.keys():
+            v = sequence_symmetry_map[k]
+            serialized_sequence_symmetry_map.append([k[0], k[1], v[0], v[1]])
+
+        info_dict['sequence_symmetry_map'] = serialized_sequence_symmetry_map
 
     with open(os.path.join(output_path, 'design_info.json'), 'w') as f:
         json.dump(info_dict, f)
