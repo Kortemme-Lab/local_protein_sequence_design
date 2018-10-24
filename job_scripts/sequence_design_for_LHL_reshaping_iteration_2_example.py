@@ -43,13 +43,19 @@ def design(input_dir, data_path, selected_designs_file, num_jobs, job_id, num_se
             
             with open(os.path.join(input_dir, str(t), 'design_info.json'), 'r') as f:
                 input_design_info = json.load(f)
+            
+            if 'sequence_symmetry_map' in input_design_info.keys():
+                ssm_serial = input_design_info['sequence_symmetry_map']
+                sequence_symmetry_map = {}
 
-            if not ('sequence_symmetry_map' in input_design_info.keys()):
-                input_design_info['sequence_symmetry_map'] = None
+                for x in ssm_serial:
+                  sequence_symmetry_map[(x[0], x[1])] = (x[2], x[3])                                                                                                          
+            else:
+                sequence_symmetry_map = None
 
             LPSD.sequence_design.make_one_design(output_path, input_pdb, input_design_info['bb_remodeled_residues'],
                     designable_residues=input_design_info['designable_residues'],repackable_residues=input_design_info['repackable_residues'],
-                    do_ex_rot_run=do_ex_rot_run, sequence_symmetry_map=input_design_info['sequence_symmetry_map'])
+                    do_ex_rot_run=do_ex_rot_run, sequence_symmetry_map=sequence_symmetry_map)
 
 if __name__ == '__main__':
     data_path = sys.argv[1]
