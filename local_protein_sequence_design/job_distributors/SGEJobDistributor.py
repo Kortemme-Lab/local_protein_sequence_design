@@ -11,7 +11,7 @@ class SGEJobDistributor(JobDistributor):
         self.script_name = script_name
         self.script_arguments = script_arguments
   
-    def run(self, num_jobs, time='48:00:00', mem_free_GB=3, scratch_space_GB=1,
+    def run(self, num_jobs, time='48:00:00', mem_free_GB=8, scratch_space_GB=1,
             architecture='linux-x64', hold_jid=None, keep_job_output_path=True):
         data_set_path = self.create_new_data_set(self.data_set_name)
         job_output_path = os.path.join(data_set_path, "job_outputs")
