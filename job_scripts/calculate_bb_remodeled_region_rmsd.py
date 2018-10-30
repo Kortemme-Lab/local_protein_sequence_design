@@ -145,6 +145,24 @@ def rmsd_between_segments(pose1, segment1, pose2, segment2):
 
     return min(rmsds)
 
+def get_helix_of_lhl_unit(pose, lhl_start, lhl_stop):
+    '''Get the helix part of a LHL unit.
+    Return a pair of (start, stop).
+    '''
+    dssp_str = rosetta.core.scoring.dssp.Dssp(pose).get_dssp_secstruct()
+
+    h_start = lhl_start
+
+    while h_start < lhl_stop and dssp_str[h_start - 1] != 'H':
+        h_start += 1
+
+    h_stop = h_start
+
+    while h_stop < lhl_stop and dssp_str[h_stop] == 'H':
+        h_stop += 1
+
+    return h_start, h_stop
+
 def calculate_bb_remodeled_region_rmsds(design_paths):
     '''Calculate the backbone RMSDs of the remodeled region.
     Return a two dimensional list where list[i][j] element
@@ -185,13 +203,22 @@ def calculate_bb_remodeled_region_rmsds(design_paths):
                 seg_i = all_bb_remodeled_residues[i][k]
                 seg_j = all_bb_remodeled_residues[j][k]
 
-                min_len = min(len(seg_i), len(seg_j))
-                maped_residues_i += seg_i[:min_len]
-                maped_residues_j += seg_j[:min_len]
+                # Get the helix part of the LHL unit
+
+                helix_i = get_helix_of_lhl_unit(pose_designs[i], min(seg_i), max(seg_i))
+                helix_j = get_helix_of_lhl_unit(pose_lowest_energies[j], min(seg_j), max(seg_j))
+
+                len_comp = min(helix_i[1] - helix_i[0], helix_j[1] - helix_j[0])
+
+                h_mid_start1 = (sum(helix_i) - len_comp) // 2
+                h_mid_start2 = (sum(helix_j) - len_comp) // 2
+
+                maped_residues_i += [h_mid_start1 + l for l in range(len_comp)]
+                maped_residues_j += [h_mid_start2 + l for l in range(len_comp)]
 
             # Calculate RMSD 
 
-            rmsd = calc_backbone_RMSD(pose_lowest_energies[j], maped_residues_j, pose_lowest_energies[i], maped_residues_i)
+            rmsd = calc_backbone_RMSD(pose_lowest_energies[j], maped_residues_j, pose_designs[i], maped_residues_i)
 
             RMSDs[i].append(rmsd)
           
