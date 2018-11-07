@@ -76,7 +76,7 @@ def get_move_map(bb_movable_residues, sc_movable_residues, movable_jumps):
     
     return mm
 
-def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_residues, flex_bb=True, do_ex_rot_run=True, sequence_symmetry_map=None):
+def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_residues, flex_bb=True, do_ex_rot_run=True, sequence_symmetry_map=None, punish_excess_ala=True):
     '''Do fast design
     Return:
         designable_residues_all, repackable_residues
@@ -95,7 +95,16 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
 
     # Set score function
 
-    sfxn = rosetta.core.scoring.get_score_function()
+    if punish_excess_ala:
+        aa_composition_setup_files = rosetta.utility.vector1_std_string()
+        aa_composition_setup_files.append('database/aa_composition/limit_ala.comp')
+        rosetta.basic.options.set_string_vector_option('score:aa_composition_setup_file', aa_composition_setup_files)
+        
+        sfxn = rosetta.core.scoring.get_score_function()
+        sfxn.set_weight(rosetta.core.scoring.aa_composition, 1)
+    else:
+        sfxn = rosetta.core.scoring.get_score_function()
+
     if sequence_symmetry_map:
         set_non_crystal_symmetry(pose, sfxn, sequence_symmetry_map)
 
