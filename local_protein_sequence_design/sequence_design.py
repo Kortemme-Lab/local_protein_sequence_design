@@ -143,7 +143,7 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
     return designable_residues, repackable_residues
 
 def make_one_design(output_path, input_pdb, bb_remodeled_residues, designable_residues=None, repackable_residues=None,
-        pre_moved_bb_pose=None, do_ex_rot_run=True, sequence_symmetry_map=None):
+        pre_moved_bb_pose=None, do_ex_rot_run=True, sequence_symmetry_map=None, design_all=False):
     '''Make one design and dump the relative information.
     Args:
         output_path: path for the outputs
@@ -159,8 +159,12 @@ def make_one_design(output_path, input_pdb, bb_remodeled_residues, designable_re
     rosetta.core.import_pose.pose_from_file(pose, input_pdb)
 
     # Find designable and repackable residues
-  
-    if (designable_residues is None) or (repackable_residues is None):
+ 
+    if design_all:
+        designable_residues = [i for i in range(1, pose.size() + 1)]
+        repackable_residues = []
+
+    elif (designable_residues is None) or (repackable_residues is None):
         designable_residues = select_designable_residues(pose, bb_remodeled_residues, pre_moved_bb_pose=pre_moved_bb_pose)
         repackable_residues = find_surrounding_seqposes_noGP(pose, designable_residues, cutoff_distance=8)
 
