@@ -30,7 +30,6 @@ def classify_loop_orientation(pose, loop_dict):
         character U(nclassified) if geometry does not fit within definitions of paper
 
     Raises:
-        Exception: unit type not in (EE, EH, HE)
         IndexError: alpha helix is less than 4 amino acids
     """
     unit_type = ''.join([loop_dict['start_ss'], loop_dict['stop_ss']])
@@ -101,7 +100,9 @@ def classify_loop_orientation(pose, loop_dict):
             orientation = 'L'
 
     else:
-        raise Exception('loops can only be between two sheets or a helix and a sheet - two helices is not supported')
+        print('No json file written: loops can only be between two sheets or a helix and a sheet - '
+              'two helices is not supported')
+        return False
 
     return orientation
 
@@ -193,7 +194,11 @@ def classify_loop_geometry(pose):
         loop_geometry_dict[i]['stop_ss_length'] = loop_index_tuples[i + 1][0] - loop_index_tuple[1]
 
     for loop_index, loop_dict in loop_geometry_dict.items():
-        loop_geometry_dict[loop_index]['orientation'] = classify_loop_orientation(pose, loop_dict)
+        orientation = classify_loop_orientation(pose, loop_dict)
+        if orientation:
+            loop_geometry_dict[loop_index]['orientation'] = orientation
+        else:
+            return False
         loop_geometry_dict[loop_index]['abego_str'] = ''.join(abego_list[loop_dict['start'] - 1: loop_dict['stop']])
         loop_geometry_dict[loop_index]['geometry_compliance'] = check_geometry_compliance(
             ''.join([loop_dict['start_ss'], loop_dict['stop_ss']]),
@@ -207,8 +212,8 @@ if __name__ == '__main__':
     """script for aggregating structural information for loops in pdb file
     currently in development - may integrate functions into loop_helix_loop_reshaping 
     
-    takes one pdb file as command line argument
-    writes json file containing structural the generated structural information
+    takes pdb files as command line argument
+    writes json files containing structural the generated structural information
     """
 
     pyrosetta.init(options='-mute all')
@@ -220,11 +225,12 @@ if __name__ == '__main__':
         print(input_pdb)
         pose = rosetta.core.import_pose.pose_from_file(input_pdb)
         loop_geometry_dict = classify_loop_geometry(pose)
-        with open('{0}.json'.format(input_pdb.split('/')[-1].split('.')[0]), 'w') as o:
-            json.dump(loop_geometry_dict, o)
-        for loop_number, loop_dict in loop_geometry_dict.items():
-            loop_unit = ''.join([loop_dict['start_ss'], loop_dict['stop_ss']])
-            compliance_counter[loop_unit] += loop_dict['geometry_compliance']
+        if loop_geometry_dict:
+            with open('{0}.json'.format(input_pdb.split('/')[-1].split('.')[0]), 'w') as o:
+                json.dump(loop_geometry_dict, o)
+            for loop_number, loop_dict in loop_geometry_dict.items():
+                loop_unit = ''.join([loop_dict['start_ss'], loop_dict['stop_ss']])
+                compliance_counter[loop_unit] += loop_dict['geometry_compliance']
     with open('summary_geometry_compliance.json', 'w') as o:
         json.dump(compliance_counter, o)
 
