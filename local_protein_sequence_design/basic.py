@@ -44,6 +44,7 @@ def get_task_factory(pose, designable_residues, repackable_residues, extra_rotam
         task_factory.push_back(lac)
 
     if layered_design:
+        # can change definition here
         ld = rosetta.protocols.rosetta_scripts.XmlObjects.static_get_task_operation(
             '''<LayerDesign name="layer_all" layer="core_boundary_surface_Nterm_Cterm" use_sidechain_neighbors="True">
     		<Nterm>
