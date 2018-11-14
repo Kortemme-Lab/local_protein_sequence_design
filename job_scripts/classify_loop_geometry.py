@@ -138,7 +138,7 @@ def check_geometry_compliance(loop_unit, loop_orientation, loop_abego_str):
         }
     }
 
-    if loop_abego_str in published_loop_geometries[loop_unit][loop_orientation]:
+    if loop_orientation != 'U' and loop_abego_str in published_loop_geometries[loop_unit][loop_orientation]:
         return True
     else:
         return False
