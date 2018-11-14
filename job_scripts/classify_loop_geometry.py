@@ -170,6 +170,9 @@ def classify_loop_geometry(pose):
     loop_geometry_dict = collections.defaultdict(dict)
     dssp_str = rosetta.core.scoring.dssp.Dssp(pose).get_dssp_secstruct()
     abego_list = list(rosetta.core.sequence.get_abego(pose))
+    print(pose.sequence())
+    print(dssp_str)
+    print(abego_list)
 
     if dssp_str[0] != 'L' or dssp_str[-1] != 'L':
         raise Exception('protein does not begin and end with loop')
@@ -213,6 +216,8 @@ if __name__ == '__main__':
 
     compliance_counter = collections.Counter()
     for input_pdb in input_pdbs:
+        # adding print statements to help track down unexpected secondary structure elements
+        print(input_pdb)
         pose = rosetta.core.import_pose.pose_from_file(input_pdb)
         loop_geometry_dict = classify_loop_geometry(pose)
         with open('{0}.json'.format(input_pdb.split('/')[-1].split('.')[0]), 'w') as o:
