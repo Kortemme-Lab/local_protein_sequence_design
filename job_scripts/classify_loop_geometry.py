@@ -172,7 +172,7 @@ def classify_loop_geometry(pose):
     abego_list = list(rosetta.core.sequence.get_abego(pose))
     print(pose.sequence())
     print(dssp_str)
-    print(abego_list)
+    print(''.join(abego_list))
 
     if dssp_str[0] != 'L' or dssp_str[-1] != 'L':
         raise Exception('protein does not begin and end with loop')
