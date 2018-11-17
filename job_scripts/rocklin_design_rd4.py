@@ -5,19 +5,19 @@ Rocklin, Gabriel J., et al.
 Science 357.6347 (2017): 168-175.
 
 modifications made in order to allow design for EHEE topologies of different length:
-
+beta_nov15 -> beta
 """
 
 from pyrosetta import *
 
 init(options='-aa_composition_setup_file ehee.hydrophobic.comp '
-             '-beta_nov15 -ex1 -ex2aro -use_input_sc -no_his_his_pairE -nblist_autoupdate true '
+             '-beta -ex1 -ex2aro -use_input_sc -no_his_his_pairE -nblist_autoupdate true '
              '-chemical:exclude_patches LowerDNA UpperDNA Cterm_amidation SpecialRotamer VirtualBB ShoveBB '
              'VirtualDNAPhosphate VirtualNTerm CTermConnect sc_orbitals pro_hydroxylated_case1 pro_hydroxylated_case2 '
              'ser_phosphorylated thr_phosphorylated tyr_phosphorylated tyr_sulfated '
              'lys_dimethylated lys_monomethylated  lys_trimethylated lys_acetylated glu_carboxylated '
              'cys_acetylated tyr_diiodinated N_acetylated C_methylamidated MethylatedProteinCterm '
-             '-relax::ramp_constraints true'
+             '-relax::ramp_constraints true '
              '-mute core.pack.interaction_graph.interaction_graph_factory'
              '-mute core.scoring.rms_util '
              '-mute core.pack.task '
