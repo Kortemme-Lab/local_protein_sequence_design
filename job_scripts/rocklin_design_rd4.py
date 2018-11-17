@@ -5,13 +5,19 @@ Rocklin, Gabriel J., et al.
 Science 357.6347 (2017): 168-175.
 
 modifications made in order to allow design for EHEE topologies of different length:
-beta_nov15 -> beta
+replaced all beta_* score fxns with current default - ref2015
+all uses of CavityVolume - causes an error
+        <CavityVolume name="cavity" confidence="0"/>
+        <CalculatorFilter name="cavity_threshold" equation="c" threshold="25" confidence="1" >
+            <Var name="c" filter="cavity"/>
+        </CalculatorFilter>
+        <Add filter_name="cavity_threshold" /> ?
 """
 
 from pyrosetta import *
 
 init(options='-aa_composition_setup_file ehee.hydrophobic.comp '
-             '-beta -ex1 -ex2aro -use_input_sc -no_his_his_pairE -nblist_autoupdate true '
+             '-ex1 -ex2aro -use_input_sc -no_his_his_pairE -nblist_autoupdate true '
              '-chemical:exclude_patches LowerDNA UpperDNA Cterm_amidation SpecialRotamer VirtualBB ShoveBB '
              'VirtualDNAPhosphate VirtualNTerm CTermConnect sc_orbitals pro_hydroxylated_case1 pro_hydroxylated_case2 '
              'ser_phosphorylated thr_phosphorylated tyr_phosphorylated tyr_sulfated '
@@ -29,11 +35,11 @@ init(options='-aa_composition_setup_file ehee.hydrophobic.comp '
 xmlobj = rosetta.protocols.rosetta_scripts.XmlObjects.create_from_string(
 '''
     <SCOREFXNS>
-        <ScoreFunction name="sfxn_std"  weights="beta_nov15.wts">
+        <ScoreFunction name="sfxn_std"  weights="ref2015">
             <Reweight scoretype="aa_composition" weight="1.0" />
             <Reweight scoretype="p_aa_pp" weight="0.6" /> #from 0.4 
         </ScoreFunction>
-        <ScoreFunction name="nov15"  weights="beta_nov15.wts"/>
+        <ScoreFunction name="nov15"  weights="ref2015"/>
         <ScoreFunction name="net_atr_net_sol"  weights="empty.wts">
             <Reweight scoretype="fa_atr" weight="1.0" />
             <Reweight scoretype="fa_rep" weight="0.55" /> 
@@ -55,7 +61,7 @@ xmlobj = rosetta.protocols.rosetta_scripts.XmlObjects.create_from_string(
             <Reweight scoretype="dihedral_constraint" weight="1.0" />
         </ScoreFunction>
         <ScoreFunction name="TotalHydrophobic" weights="total_hydrophobic_weights.wts"/>
-        <ScoreFunction name="reg_nov15"  weights="beta_nov15.wts">
+        <ScoreFunction name="reg_nov15"  weights="ref2015">
             <Reweight scoretype="aa_composition" weight="1.0" />
             <Reweight scoretype="p_aa_pp" weight="0.7" /> #from 0.6
         </ScoreFunction>
@@ -96,10 +102,7 @@ xmlobj = rosetta.protocols.rosetta_scripts.XmlObjects.create_from_string(
         <CalculatorFilter name="contact_threshold" equation="-c" threshold="-125" confidence="1" >
             <Var name="c" filter="contact"/>
         </CalculatorFilter>
-        <CavityVolume name="cavity" confidence="0"/>
-        <CalculatorFilter name="cavity_threshold" equation="c" threshold="25" confidence="1" >
-            <Var name="c" filter="cavity"/>
-        </CalculatorFilter>
+
         <ResidueCount name="AlaCount" residue_types="ALA" max_residue_count="6" confidence="1"/>
         <AverageDegree name="degree_core_SCN" task_operations="layer_core_SCN" confidence="1" threshold="9.4" />
         <ResidueCount name="res_count_core_SCN" task_operations="layer_core_SCN" max_residue_count="9999" confidence="0"/>
@@ -171,7 +174,6 @@ xmlobj = rosetta.protocols.rosetta_scripts.XmlObjects.create_from_string(
             <Add mover_name="fastdes_surface" />
             <Add filter_name="np_count" />   
             <Add filter_name="AlaCount" />   
-            <Add filter_name="cavity_threshold" /> ?
             <Add filter_name="unsat_hbond" /> #?
             <Add filter_name="buried_np_per_res" /> 
             <Add filter_name="score_per_res" /> 
