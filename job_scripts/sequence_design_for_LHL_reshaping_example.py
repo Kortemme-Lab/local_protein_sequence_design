@@ -38,9 +38,10 @@ def get_bb_remodeled_residues_for_LHL_designs(file_for_insertion_points):
     return bb_remodeled_residues
 
 def design(input_dir, data_path, pre_moved_bb_pdb, file_for_pre_moved_bb_insertion_points, num_jobs, job_id, num_seq_per_model=1, do_ex_rot_run=True,
-        sequence_symmetry_map_generator=None, relax_script="default"):
-    pyrosetta.init(options='-mute all')
-
+           sequence_symmetry_map_generator=None, relax_script="default", repeats=1, ramp=1,
+           layered_design_list=['default'], composition_file=''):
+    # pyrosetta.init(options='-mute all {0}'.format(composition_file))
+    pyrosetta.init(options='{0}'.format(composition_file))
     # Get all the tasks
 
     tasks = []
@@ -86,8 +87,9 @@ def design(input_dir, data_path, pre_moved_bb_pdb, file_for_pre_moved_bb_inserti
             output_path = os.path.join(data_path, str(i))
             os.makedirs(output_path, exist_ok=True)
             
-            LPSD.sequence_design.make_one_design(output_path, t[0], t[1], pre_moved_bb_pose=pre_moved_bb_pose, do_ex_rot_run=do_ex_rot_run,
-                    sequence_symmetry_map=t[2], relax_script=relax_script)
+            LPSD.sequence_design.make_one_design(output_path, t[0], t[1], pre_moved_bb_pose=pre_moved_bb_pose,
+                do_ex_rot_run=do_ex_rot_run, sequence_symmetry_map=t[2], relax_script=relax_script, repeats=repeats,
+                ramp=ramp, layered_design_list=layered_design_list)
 
 if __name__ == '__main__':
     data_path = sys.argv[1]
@@ -102,12 +104,20 @@ if __name__ == '__main__':
     
     start_time = time.time()
    
-    input_dir = 'test_inputs/two_lhl_units_2lv8'
-    pre_moved_bb_pdb = 'test_inputs/2lv8_inputs/2lv8_cleaned.pdb'
-    file_for_pre_moved_bb_insertion_points = 'test_inputs/2lv8_inputs/2lv8_insertion_points.json'
-   
+    input_dir = '/Users/nwhoppe/google_drive/kortemme_rotation/design_scripts/test_design/'
+    pre_moved_bb_pdb = '/Users/nwhoppe/google_drive/kortemme_rotation/design_scripts/EHEE_rd1_0284.pdb'
+    file_for_pre_moved_bb_insertion_points = '/Users/nwhoppe/google_drive/kortemme_rotation/design_scripts/EHEE_rd1_0284_insertion_points.json'
+
+    # relax_script: default or rosettacon2018
+    # repeats: int
+    # ramp: 0 or 1
+    # layered_desig_list: list with default, termini, core, or surface
+    # composition_file: '' or '-aa_composition_setup_file ehee.hydrophobic.comp'
+    design_options = {'num_seq_per_model': 1, 'relax_script': 'default', 'repeats': 1, 'ramp': 0,
+                      'layered_design_list': ['core', 'surface'],
+                      'composition_file': '-aa_composition_setup_file ehee.hydrophobic.comp'}
     design(input_dir, data_path, pre_moved_bb_pdb, file_for_pre_moved_bb_insertion_points, num_jobs, job_id,
-           num_seq_per_model=1, do_ex_rot_run=False, relax_script="default")
+           do_ex_rot_run=False, **design_options)
 
     end_time = time.time()
     print('Finish job in {0} seconds.'.format(int(end_time - start_time)))

@@ -2,7 +2,7 @@ import pyrosetta
 from pyrosetta import rosetta
 
 
-def get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True, limit_aro_chi2=True, layered_design=True):
+def get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True, limit_aro_chi2=True, layered_design='default'):
     '''Get a task factory given the designable and repackable residues.'''
     def list_to_str(l):
         return ','.join(list(str(i) for i in l))
@@ -43,7 +43,7 @@ def get_task_factory(pose, designable_residues, repackable_residues, extra_rotam
 
         task_factory.push_back(lac)
 
-    if layered_design:
+    if layered_design == 'default':
         # can change definition here
         ld = rosetta.protocols.rosetta_scripts.XmlObjects.static_get_task_operation(
             '''<LayerDesign name="layer_all" layer="core_boundary_surface_Nterm_Cterm" use_sidechain_neighbors="True">
@@ -56,6 +56,39 @@ def get_task_factory(pose, designable_residues, repackable_residues, extra_rotam
     			<all exclude="CAFILMPVWY" />
     		</Cterm>
         </LayerDesign>''')
+        task_factory.push_back(ld)
+    elif layered_design == 'termini':
+        ld = rosetta.protocols.rosetta_scripts.XmlObjects.static_get_task_operation(
+            '''<LayerDesign name="layer_all" layer="core_boundary_surface_Nterm_Cterm" use_sidechain_neighbors="True" core="3.5" surface="1.4" make_pymol_script="1" >
+		    <Nterm>
+		        <all append="DEGHKNQRST" />
+		        <all exclude="CAFILMPVWY" />
+		    </Nterm>
+		    <Cterm>
+		        <all append="DEGHKNQRST" />
+		        <all exclude="CAFILMPVWY" />
+		    </Cterm>
+	    </LayerDesign>'''
+        )
+        task_factory.push_back(ld)
+    elif layered_design == 'surface':
+        ld = rosetta.protocols.rosetta_scripts.XmlObjects.static_get_task_operation(
+            '''<LayerDesign name="layer_surfacedes" layer="surface" surface_E="90" surface_H="60" pore_radius="1.8" >
+            <surface>
+                <all append="ADEHIKQRTV"/>
+                <all exclude="CFGLMNPSWY" />
+                <Helix append="ADEHKQR" />
+                <Helix exclude="CFGILMNPSTVWY" />
+                <Strand append="ADEHIKNQRTV" />
+                <Strand exclude="CFGLMPSWY" />
+            </surface>
+        </LayerDesign>'''
+        )
+        task_factory.push_back(ld)
+    elif layered_design == 'core':
+        ld = rosetta.protocols.rosetta_scripts.XmlObjects.static_get_task_operation(
+            '''<LayerDesign name="layer_core_SCN" layer="core" pore_radius="2.0" verbose="true" use_sidechain_neighbors="True" core="4" make_pymol_script="1"/>'''
+        )
         task_factory.push_back(ld)
 
     return task_factory
