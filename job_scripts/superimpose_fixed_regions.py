@@ -90,24 +90,33 @@ def superimpose_poses_by_residues(pose_source, residues_source, pose_target, res
     pose_source.apply_transform_Rx_plus_v(np_array_to_xyzM(M), 
             np_array_to_xyzV(t))
 
-def superimpose_fixed_regions(data_path):
+def superimpose_fixed_regions(data_path, num_jobs, job_id):
     '''Superimpose all fixed regions of designs in a data path.'''
 
     designs = os.listdir(data_path)
-    designs = [d for d in designs if d.isdigit() and os.path.exists(os.path.join(data_path, d, 'design.pdb.gz'))]
+    designs = [d for d in designs if d.isdigit() and os.path.exists(os.path.join(data_path, d, 'design.pdb.gz'))
+        and os.path.exists(os.path.join(data_path, d, 'design_info.json'))]
 
     ref_pose, ref_fixed_residues = load_design(os.path.join(data_path, designs[0])) 
 
     for i in range(1, len(designs)):
-        pose, fixed_residues = load_design(os.path.join(data_path, designs[i]))
+        if i % num_jobs == job_id:
+            pose, fixed_residues = load_design(os.path.join(data_path, designs[i]))
 
-        superimpose_poses_by_residues(pose, fixed_residues, ref_pose, ref_fixed_residues)
+            superimpose_poses_by_residues(pose, fixed_residues, ref_pose, ref_fixed_residues)
 
-        pose.dump_pdb(os.path.join(data_path, designs[i], 'design.pdb.gz'))
+            pose.dump_pdb(os.path.join(data_path, designs[i], 'design.pdb.gz'))
 
 if __name__ == '__main__':
     data_path = sys.argv[1]
+    
+    num_jobs = 1
+    job_id = 0
+
+    if len(sys.argv) > 3:
+        num_jobs = int(sys.argv[2])
+        job_id = int(sys.argv[3]) - 1
 
     pyrosetta.init()
 
-    superimpose_fixed_regions(data_path)
+    superimpose_fixed_regions(data_path, num_jobs, job_id)
