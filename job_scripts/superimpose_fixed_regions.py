@@ -93,7 +93,7 @@ def superimpose_poses_by_residues(pose_source, residues_source, pose_target, res
 def superimpose_fixed_regions(data_path, num_jobs, job_id):
     '''Superimpose all fixed regions of designs in a data path.'''
 
-    designs = os.listdir(data_path)
+    designs = sorted(os.listdir(data_path))
     designs = [d for d in designs if d.isdigit() and os.path.exists(os.path.join(data_path, d, 'design.pdb.gz'))
         and os.path.exists(os.path.join(data_path, d, 'design_info.json'))]
 
