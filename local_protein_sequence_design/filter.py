@@ -2,6 +2,7 @@ import os
 import json
 
 import numpy as np
+import pandas as pd
 
 import pyrosetta
 from pyrosetta import rosetta
@@ -11,6 +12,7 @@ from local_protein_sequence_design import fragment_quality_analysis
 from local_protein_sequence_design import IO 
 from local_protein_sequence_design.basic import *
 from local_protein_sequence_design import hydrogen_bonds
+from local_protein_sequence_design import tertiary_motif_analysis
 
 
 def get_residue_selector_for_residues(residues):
@@ -142,12 +144,133 @@ def get_fragment_quality_scores(pose, bb_remodeled_residues):
 
     return max(crmsds), np.mean(crmsds)
 
+
+def get_contacts(pose, residues=None):
+    """Use AtomicContactCount filter to get number of sidechain carbon-carbon contacts
+
+    Args:
+        pose: rosetta pose object
+        residues: list of residue positions
+    Returns:
+        value from AtomicContactCount
+
+    """
+    if not residues:
+        residues = list(range(1, pose.size() + 1))
+
+    task_factory = rosetta.core.pack.task.TaskFactory()
+    contact_selector = get_residue_selector_for_residues(residues)
+    contact_operation = rosetta.core.pack.task.operation.OperateOnResidueSubset(
+        rosetta.core.pack.task.operation.PreventRepackingRLT(),
+        contact_selector
+    )
+    task_factory.push_back(contact_operation)
+
+    atomic_contact_count = rosetta.protocols.protein_interface_design.filters.AtomicContactCountFilter()
+    atomic_contact_count.initialize_all_atoms(task_factory)
+    return atomic_contact_count.compute(pose)
+
+
+def get_total_score_term(pose, rosetta_score_term):
+    """Return the total value of given term for the pose
+
+    Args:
+        pose: rosetta pose object
+        rosetta_score_term: rosetta score term in core.scoring
+
+    Returns:
+        total value of score term for pose
+
+    """
+    sfxn = rosetta.core.scoring.get_score_function()
+    sfxn.set_weight(rosetta.core.scoring.aa_composition, 1.0)
+    sfxn(pose)
+
+    return pose.energies().total_energies().get(rosetta_score_term)
+
+
+def get_count_charged_aa(sequence):
+    """count number of charged amino acids in string of amino acid sequence
+
+    Args:
+        sequence: string containing single amino acid characters
+
+    Returns:
+        integer number of charged amino acids (D,E,K,R)
+
+    """
+    return sum([sequence.count(aa) for aa in 'DEKR'])
+
+
+def sum_abego_res_profile(pose):
+    """calculate abego res profile terms as defined on p.60-61 of supplementary material in
+    Rocklin, Gabriel J., et al.
+    "Global analysis of protein folding using massively parallel design, synthesis, and testing."
+    Science 357.6347 (2017): 168-175.
+
+    Args:
+        pose: rosetta pose object
+
+    Returns:
+       sum of abego profile term for entire protein and sum of terms less than zero (penalty)
+
+    Raises:
+         FileNotFoundError: abego_res_profile table is not found in the location specified in site_settings.json
+
+    """
+    ss = site_settings.load_site_settings()
+    abego_df = pd.read_table(os.path.abspath(ss['abego_res_profile']), sep=' ', index_col=0)
+    abego_list = list(rosetta.core.sequence.get_abego(pose))
+    abego_res_profile_sum = 0
+    abego_res_profile_penalty = 0
+
+    # profile is defined as a triad - so it is undefined for first and last position
+    for index in range(1, pose.size()):
+        triad = ''.join([abego_list[index - 1], abego_list[index], abego_list[index + 1]])
+        amino_acid = pose.residue(index + 1).name1()
+        abego_profile_i = abego_df[abego_df['amino_acid'] == amino_acid].loc[triad, 'log_aa_freq_given_triad_over_aa_freq']
+        abego_res_profile_sum += abego_profile_i
+        if abego_profile_i < 0:
+            abego_res_profile_penalty += abego_profile_i
+
+    return abego_res_profile_sum, abego_res_profile_penalty
+
+
+def contiguous_len_without_residues(sequence, residue_types):
+    """calculate the longest stretch of contiguous sequence without a residue in residue types"""
+    len_contiguous_seq = 0
+    max_len = 0
+    for amino_acid in sequence:
+        if amino_acid not in residue_types:
+            len_contiguous_seq += 1
+            if len_contiguous_seq > max_len:
+                max_len = len_contiguous_seq
+        else:
+            len_contiguous_seq = 0
+    return max_len
+
+
+def get_average_degree(pose, residues):
+    """calculate average number of residues in a 10 Å sphere around reach residue with Average Degree filter"""
+    task_factory = rosetta.core.pack.task.TaskFactory()
+    degree_selector = get_residue_selector_for_residues(residues)
+    degree_operation = rosetta.core.pack.task.operation.OperateOnResidueSubset(
+        rosetta.core.pack.task.operation.PreventRepackingRLT(),
+        degree_selector
+    )
+    task_factory.push_back(degree_operation)
+    avg_degree_filter = rosetta.protocols.protein_interface_design.filters.AverageDegreeFilter()
+    avg_degree_filter.task_factory(task_factory)
+    return avg_degree_filter.compute(pose)
+
+
 def generate_filter_scores(filter_info_file, pose, designable_residues, repackable_residues, bb_remodeled_residues):
     '''Generate the scores of filters and save the scores
     into the filter_info_file in json format.
     '''
     movable_residues = designable_residues + repackable_residues
-    all_residues = list(range(1, pose.size()))
+    all_residues = list(range(1, pose.size() + 1))
+    AFILMVWY_residues = [i for i in all_residues if pose.residue(i).name1() in 'AFILMVWY']
 
     filter_scores = {}
 
@@ -220,6 +343,74 @@ def generate_filter_scores(filter_info_file, pose, designable_residues, repackab
         filter_scores['bb_remodeled_mean_fragment_crmsd'] = bb_remodeled_mean_fragment_crmsd
     else:
         print('Warning: missing dependencies for fragment quality analysis. Check your site settings!')
+
+    # Additional filters to compute weighted average as presented in the regression model:
+    # Rocklin, Gabriel J., et al.
+    # "Global analysis of protein folding using massively parallel design, synthesis, and testing."
+    # Science 357.6347 (2017): 168-175.
+
+    # logistic regression model {term: (scale, weight)
+    log_reg_model = {
+        'buried_np_AFILMVWY_per_res': (5.373743, 0.693898),
+        'ssc50_mean': (0.218088, 0.431708),
+        'contact_all': (33.519194, 0.403505),
+        'avg_all_frags': (0.210121, -0.371572),
+        'ref': (9.173606, 0.363076),
+        'exposed_polars': (114.822804, 0.297397),
+        'p_aa_pp': (1.540825, -0.255101),
+        'n_charged': (3.006345, 0.251671),
+        'net_atr_per_res': (0.137426, -0.206979),
+        'exposed_np_AFILMVWY': (77.497695, 0.166332),
+        'ss_sc': (0.039497, -0.122782),
+        'hbond_sc': (4.198789, -0.115573),
+        'dsc50_min': (0.019637, 0.094124),
+        'omega': (1.096478, 0.077276),
+        'dsc50_mean': (0.021069, 0.077072),
+        'abego_res_profile_penalty': (0.015392, 0.070056),
+        'hphob_sc_contacts': (3.130241, -0.06364),
+        'contig_not_hp_max': (3.055984, 0.059211),
+        'unsat_hbond': (1.175985, -0.057431),
+        'hbond_bb_sc': (1.567202, 0.030324),
+        'degree': (0.172861, 0.021928),
+        'fa_atr_per_res': (0.153013, -0.019776)
+    }
+
+    filter_scores['buried_np_AFILMVWY_per_res'] = calc_buried_np_SASA(pose, list('AFILMVWY')) / pose.size()
+
+    dsc_50s, ssc50s = tertiary_motif_analysis.calc_tertiary_motif_scores('design.pdb.gz')
+    filter_scores['ssc50_mean'] = np.average(ssc50s)
+    filter_scores['dsc50_min'] = min(dsc_50s)
+    filter_scores['dsc50_mean'] = np.average(dsc_50s)
+
+    filter_scores['contact_all'] = get_contacts(pose)
+    filter_scores['hphob_sc_contacts'] = get_contacts(pose, list('FILMVWY'))
+
+    filter_scores['avg_all_frags'] = get_fragment_quality_scores(pose, all_residues)
+
+    filter_scores['ref'] = get_total_score_term(pose, rosetta.core.scoring.ref)
+    filter_scores['p_aa_pp'] = get_total_score_term(pose, rosetta.core.scoring.p_aa_pp)
+    filter_scores['hbond_sc'] = get_total_score_term(pose, rosetta.core.scoring.hbond_sc)
+    filter_scores['omega'] = get_total_score_term(pose, rosetta.core.scoring.omega)
+    filter_scores['hbond_bb_sc'] = get_total_score_term(pose, rosetta.core.scoring.hbond_bb_sc)
+
+    fa_atr = get_total_score_term(pose, rosetta.core.scoring.fa_atr)
+    fa_rep = get_total_score_term(pose, rosetta.core.scoring.fa_rep)
+    filter_scores['net_atr_per_res'] = (fa_atr + fa_rep) / pose.size()
+    filter_scores['fa_atr_per_res'] = fa_atr / pose.size()
+
+    total_sasa_all, hydrophobic_sasa_all = get_sasa(pose, all_residues)
+    total_sasa_AFILMVWY, hydrophobic_sasa_AFILMVWY = get_sasa(pose, AFILMVWY_residues)
+    filter_scores['exposed_polar'] = total_sasa_all - hydrophobic_sasa_all
+    filter_scores['exposed_np_AFILMVWY'] = hydrophobic_sasa_AFILMVWY
+    filter_scores['n_charged'] = get_count_charged_aa(pose.sequence())
+
+    filter_scores['ss_sc'] = get_helix_complementarity_score(pose, AFILMVWY_residues)
+
+    abego_res_profile_sum, abego_res_profile_penalty = sum_abego_res_profile(pose)
+    filter_scores['abego_res_profile_penalty'] = abego_res_profile_penalty
+
+    filter_scores['contig_not_hp_max'] = contiguous_len_without_residues(pose.sequence(), 'FILMVWY')
+    filter_scores['degree'] = get_average_degree(pose, all_residues)
 
     with open(filter_info_file, 'w') as f:
         json.dump(filter_scores, f)
