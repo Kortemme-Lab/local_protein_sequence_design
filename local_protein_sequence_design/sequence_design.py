@@ -98,6 +98,7 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
     # Set score function
 
     sfxn = rosetta.core.scoring.get_score_function()
+    sfxn.set_weight(rosetta.core.scoring.aa_composition, 1.0)
     if sequence_symmetry_map:
         set_non_crystal_symmetry(pose, sfxn, sequence_symmetry_map)
 
