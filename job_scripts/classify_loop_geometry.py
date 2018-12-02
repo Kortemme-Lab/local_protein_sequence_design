@@ -88,7 +88,7 @@ def classify_loop_orientation(pose, loop_dict):
     elif unit_type == 'EE':
         start_sheet_xyz_vector = pose.residue(loop_dict['start'] - 1).xyz('C') \
                                  - pose.residue(loop_dict['start'] - 1).xyz('N')
-        start_to_stop_xyz_vector = pose.residue(loop_dict['stop'] + 1).xyz('CA')\
+        start_to_stop_xyz_vector = pose.residue(loop_dict['stop'] + 1).xyz('CA') \
                                    - pose.residue(loop_dict['start'] - 1).xyz('CA')
         c_alpha_xyz = pose.residue(loop_dict['stop'] + 1).xyz('CA')
         c_beta_xyz = pose.residue(loop_dict['stop'] + 1).xyz('CB')
@@ -123,6 +123,9 @@ def check_geometry_compliance(loop_unit, loop_orientation, loop_abego_str):
     Raises:
 
     """
+    orientation_compliance = False
+    geometry_compliance = False
+
     # unit -> orientation -> abego
     published_loop_geometries = {
         'EE': {
@@ -139,10 +142,28 @@ def check_geometry_compliance(loop_unit, loop_orientation, loop_abego_str):
         }
     }
 
+    published_loop_orientations = {
+        'EE': {
+            'L': [2, 3, 4],
+            'R': [4, 5]
+        },
+        'EH': {
+            'P': [2, 3],
+            'A': [3]
+        },
+        'HE': {
+            'P': [2, 3, 4],
+            'A': [3, 4]
+        }
+    }
+
     if loop_orientation != 'U' and loop_abego_str in published_loop_geometries[loop_unit][loop_orientation]:
-        return True
-    else:
-        return False
+        geometry_compliance = True
+
+    if loop_orientation != 'U' and len(loop_abego_str) in published_loop_orientations[loop_unit][loop_orientation]:
+        orientation_compliance = True
+
+    return orientation_compliance, geometry_compliance
 
 
 def classify_loop_geometry(pose):
@@ -200,11 +221,14 @@ def classify_loop_geometry(pose):
         else:
             return False
         loop_geometry_dict[loop_index]['abego_str'] = ''.join(abego_list[loop_dict['start'] - 1: loop_dict['stop']])
-        loop_geometry_dict[loop_index]['geometry_compliance'] = check_geometry_compliance(
+        orientation_compliance, geometry_compliance = check_geometry_compliance(
             ''.join([loop_dict['start_ss'], loop_dict['stop_ss']]),
             loop_dict['orientation'],
             loop_dict['abego_str']
         )
+        loop_geometry_dict[loop_index]['orientation_compliance'] = orientation_compliance
+        loop_geometry_dict[loop_index]['geometry_compliance'] = geometry_compliance
+
     return loop_geometry_dict
 
 
@@ -219,7 +243,7 @@ if __name__ == '__main__':
     pyrosetta.init(options='-mute all')
     input_pdbs = sys.argv[1:]
 
-    compliance_counter = collections.Counter()
+    summary_counter = collections.defaultdict(collections.Counter)
     for input_pdb in input_pdbs:
         # adding print statements to help track down unexpected secondary structure elements
         print(input_pdb)
@@ -230,9 +254,15 @@ if __name__ == '__main__':
                 json.dump(loop_geometry_dict, o)
             for loop_number, loop_dict in loop_geometry_dict.items():
                 loop_unit = ''.join([loop_dict['start_ss'], loop_dict['stop_ss']])
-                compliance_counter[loop_unit] += loop_dict['geometry_compliance']
+                loop_length = len(loop_dict['abego_str'])
+
+                summary_counter[loop_unit][loop_length] += 1
+                summary_counter[loop_unit]['abego'] = loop_dict['abego_str']
+                summary_counter[loop_unit]['orientation_compliance'] += loop_dict['orientation_compliance']
+                summary_counter[loop_unit]['geometry_compliance'] += loop_dict['geometry_compliance']
+
     with open('summary_geometry_compliance.json', 'w') as o:
-        json.dump(compliance_counter, o)
+        json.dump(summary_counter, o)
 
     # # for debugging
     # pyrosetta.init()
