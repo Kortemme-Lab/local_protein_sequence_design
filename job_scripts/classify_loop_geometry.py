@@ -244,6 +244,7 @@ if __name__ == '__main__':
     input_pdbs = sys.argv[1:]
 
     summary_counter = collections.defaultdict(collections.Counter)
+    complete_orientation_compliance_list = []
     for input_pdb in input_pdbs:
         # adding print statements to help track down unexpected secondary structure elements
         print(input_pdb)
@@ -252,14 +253,24 @@ if __name__ == '__main__':
         if loop_geometry_dict:
             with open('{0}.json'.format(input_pdb.split('/')[-1].split('.')[0]), 'w') as o:
                 json.dump(loop_geometry_dict, o)
+            complete_orientation_compliance = True
             for loop_number, loop_dict in loop_geometry_dict.items():
                 loop_unit = ''.join([loop_dict['start_ss'], loop_dict['stop_ss']])
                 loop_length = len(loop_dict['abego_str'])
+                if not loop_dict['orientation_compliance']:
+                    complete_orientation_compliance = False
 
                 summary_counter[loop_unit][loop_length] += 1
+                summary_counter[loop_unit][loop_dict['orientation']] += 1
                 summary_counter[loop_unit]['abego'] = loop_dict['abego_str']
                 summary_counter[loop_unit]['orientation_compliance'] += loop_dict['orientation_compliance']
                 summary_counter[loop_unit]['geometry_compliance'] += loop_dict['geometry_compliance']
+            if complete_orientation_compliance:
+                complete_orientation_compliance_list.append(input_pdb)
+                
+    with open('complete_orientation_compliance.txt', 'w') as o:
+        for pdb in complete_orientation_compliance_list:
+            o.write(pdb + '\n')
 
     with open('summary_geometry_compliance.json', 'w') as o:
         json.dump(summary_counter, o)
