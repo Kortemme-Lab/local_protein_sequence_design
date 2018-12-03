@@ -76,7 +76,7 @@ def get_move_map(bb_movable_residues, sc_movable_residues, movable_jumps):
     
     return mm
 
-def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_residues, fast_design_repeats=1, flex_bb=True, do_ex_rot_run=True, sequence_symmetry_map=None, punish_excess_ala=True):
+def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_residues, fast_design_repeats=1, flex_bb=True, do_ex_rot_run=True, sequence_symmetry_map=None, punish_excess_ala=False):
     '''Do fast design
     Return:
         designable_residues_all, repackable_residues
