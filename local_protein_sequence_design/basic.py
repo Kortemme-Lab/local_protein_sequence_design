@@ -59,7 +59,7 @@ def get_task_factory(pose, designable_residues, repackable_residues, extra_rotam
         task_factory.push_back(ld)
     elif layered_design == 'termini':
         ld = rosetta.protocols.rosetta_scripts.XmlObjects.static_get_task_operation(
-            '''<LayerDesign name="layer_all" layer="core_boundary_surface_Nterm_Cterm" use_sidechain_neighbors="True" core="3.5" surface="1.4" make_pymol_script="1" >
+            '''<LayerDesign name="layer_all" layer="core_boundary_surface_Nterm_Cterm" use_sidechain_neighbors="True" core="2.5" surface="0.75" make_pymol_script="1" >
 		    <Nterm>
 		        <all append="DEGHKNQRST" />
 		        <all exclude="CAFILMPVWY" />

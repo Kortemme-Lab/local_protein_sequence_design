@@ -155,19 +155,18 @@ def get_contacts(pose, residues=None):
         value from AtomicContactCount
 
     """
-    if not residues:
+    atomic_contact_count = rosetta.protocols.protein_interface_design.filters.AtomicContactCountFilter()
+    if residues:
         residues = list(range(1, pose.size() + 1))
 
-    task_factory = rosetta.core.pack.task.TaskFactory()
-    contact_selector = get_residue_selector_for_residues(residues)
-    contact_operation = rosetta.core.pack.task.operation.OperateOnResidueSubset(
-        rosetta.core.pack.task.operation.PreventRepackingRLT(),
-        contact_selector
-    )
-    task_factory.push_back(contact_operation)
+        task_factory = rosetta.core.pack.task.TaskFactory()
+        contact_selector = get_residue_selector_for_residues(residues)
+        contact_operation = rosetta.core.pack.task.operation.OperateOnResidueSubset(
+            rosetta.core.pack.task.operation.PreventRepackingRLT(), contact_selector
+        )
+        task_factory.push_back(contact_operation)
+        atomic_contact_count.initialize_all_atoms(task_factory)
 
-    atomic_contact_count = rosetta.protocols.protein_interface_design.filters.AtomicContactCountFilter()
-    atomic_contact_count.initialize_all_atoms(task_factory)
     return atomic_contact_count.compute(pose)
 
 
@@ -225,9 +224,9 @@ def sum_abego_res_profile(pose):
     abego_res_profile_penalty = 0
 
     # profile is defined as a triad - so it is undefined for first and last position
-    for index in range(1, pose.size()):
-        triad = ''.join([abego_list[index - 1], abego_list[index], abego_list[index + 1]])
-        amino_acid = pose.residue(index + 1).name1()
+    for position in range(2, pose.size()):
+        triad = ''.join([abego_list[position - 2], abego_list[position - 1], abego_list[position]])
+        amino_acid = pose.residue(position).name1()
         abego_profile_i = abego_df[abego_df['amino_acid'] == amino_acid].loc[triad, 'log_aa_freq_given_triad_over_aa_freq']
         abego_res_profile_sum += abego_profile_i
         if abego_profile_i < 0:
@@ -250,15 +249,18 @@ def contiguous_len_without_residues(sequence, residue_types):
     return max_len
 
 
-def get_average_degree(pose, residues):
+def get_average_degree(pose, residues=None):
     """calculate average number of residues in a 10 Å sphere around reach residue with Average Degree filter"""
     task_factory = rosetta.core.pack.task.TaskFactory()
-    degree_selector = get_residue_selector_for_residues(residues)
-    degree_operation = rosetta.core.pack.task.operation.OperateOnResidueSubset(
-        rosetta.core.pack.task.operation.PreventRepackingRLT(),
-        degree_selector
-    )
-    task_factory.push_back(degree_operation)
+    # do not specify residues if computing avg degree for full protein
+    # if residues = all residues of protein, filter will return Nan
+    if residues:
+        degree_selector = get_residue_selector_for_residues(residues)
+        degree_operation = rosetta.core.pack.task.operation.OperateOnResidueSubset(
+            rosetta.core.pack.task.operation.PreventRepackingRLT(),
+            degree_selector
+        )
+        task_factory.push_back(degree_operation)
     avg_degree_filter = rosetta.protocols.protein_interface_design.filters.AverageDegreeFilter()
     avg_degree_filter.task_factory(task_factory)
     return avg_degree_filter.compute(pose)
@@ -383,9 +385,9 @@ def generate_filter_scores(filter_info_file, pose, designable_residues, repackab
     filter_scores['dsc50_mean'] = np.average(dsc_50s)
 
     filter_scores['contact_all'] = get_contacts(pose)
-    filter_scores['hphob_sc_contacts'] = get_contacts(pose, list('FILMVWY'))
+    filter_scores['hphob_sc_contacts'] = get_contacts(pose, [i for i in all_residues if pose.residue(i).name1() in 'FILMVWY'])
 
-    filter_scores['avg_all_frags'] = get_fragment_quality_scores(pose, all_residues)
+    filter_scores['avg_all_frags'] = get_fragment_quality_scores(pose, all_residues)[1]
 
     filter_scores['ref'] = get_total_score_term(pose, rosetta.core.scoring.ref)
     filter_scores['p_aa_pp'] = get_total_score_term(pose, rosetta.core.scoring.p_aa_pp)
@@ -410,7 +412,7 @@ def generate_filter_scores(filter_info_file, pose, designable_residues, repackab
     filter_scores['abego_res_profile_penalty'] = abego_res_profile_penalty
 
     filter_scores['contig_not_hp_max'] = contiguous_len_without_residues(pose.sequence(), 'FILMVWY')
-    filter_scores['degree'] = get_average_degree(pose, all_residues)
+    filter_scores['degree'] = get_average_degree(pose)
 
     with open(filter_info_file, 'w') as f:
         json.dump(filter_scores, f)

@@ -4,7 +4,7 @@ import subprocess
 from local_protein_sequence_design import site_settings
 
 
-def parse_column_to_list(file_str, column, return_type=int):
+def parse_column_to_list(file_str, column, return_type=float):
     """return second column of file as list of column entries casted as return_type
 
     Args:

@@ -267,7 +267,7 @@ if __name__ == '__main__':
                 summary_counter[loop_unit]['geometry_compliance'] += loop_dict['geometry_compliance']
             if complete_orientation_compliance:
                 complete_orientation_compliance_list.append(input_pdb)
-                
+
     with open('complete_orientation_compliance.txt', 'w') as o:
         for pdb in complete_orientation_compliance_list:
             o.write(pdb + '\n')
