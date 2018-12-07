@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import numpy as np
 import pandas as pd
 from sklearn.cluster import AgglomerativeClustering
 from scipy.spatial.distance import squareform
@@ -18,8 +19,11 @@ def hierarchical_cluster(distance_matrix, n_clusters=10):
     """
 
     # convert distance matrix into vector
-    distance_vector = squareform(distance_matrix)
+    print(distance_matrix.shape())
+    distance_vector = squareform(np.array(distance_matrix))
     hierarchical_clustering = AgglomerativeClustering(n_clusters=n_clusters, affinity='precomputed').fit(distance_vector)
+    print(hierarchical_clustering.labels_)
+    print(len(hierarchical_clustering.labels_))
     return hierarchical_clustering.labels_
 
 
@@ -29,7 +33,7 @@ if __name__ == '__main__':
 
     design_df = pd.read_csv(unique_design_tsv, sep='\t', header=0, index_col='design_id')
     design_path_list = [data_path_prefix + str(design_id) for design_id in design_df.index.values]
-    
+
     pyrosetta.init()
     rmsd_matrix = calculate_bb_remodeled_region_rmsds(design_path_list)
     cluster_labels = hierarchical_cluster(rmsd_matrix)
