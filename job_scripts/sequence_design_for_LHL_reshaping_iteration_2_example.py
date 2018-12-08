@@ -21,8 +21,10 @@ def print_pymol_selection_for_residues(pose, residues):
     print('sele ' + ' or '.join(res_commands))
 
 def design(input_dir, data_path, selected_designs_file, num_jobs, job_id, num_seq_per_model=1, do_ex_rot_run=True,
-           relax_script="default"):
-    pyrosetta.init(options='-mute all')
+           relax_script="default", repeats=1, ramp=1,
+           layered_design_list=['default'], composition_file=''):
+    # pyrosetta.init(options='-mute all')
+    pyrosetta.init(options='{0}'.format(composition_file))
 
     # Get all the tasks
 
@@ -56,7 +58,10 @@ def design(input_dir, data_path, selected_designs_file, num_jobs, job_id, num_se
                 repackable_residues=input_design_info['repackable_residues'],
                 do_ex_rot_run=do_ex_rot_run,
                 sequence_symmetry_map=input_design_info['sequence_symmetry_map'],
-                relax_script=relax_script
+                relax_script=relax_script,
+                repeats=repeats,
+                ramp=ramp,
+                layered_design_list=layered_design_list
             )
 
 
@@ -75,8 +80,11 @@ if __name__ == '__main__':
     input_dir = 'data/sequence_design_for_LHL_reshaping_example'
     selected_designs_file = 'data/sequence_design_for_LHL_reshaping_example/selected_designs_for_next_iteration.tsv'
 
-    design(input_dir, data_path, selected_designs_file, num_jobs, job_id, num_seq_per_model=1, do_ex_rot_run=True,
-           relax_script="default")
+    design_options = {'num_seq_per_model': 100, 'relax_script': 'default', 'repeats': 1, 'ramp': 1,
+                      'layered_design_list': ['termini', 'surface'],
+                      'composition_file': '-aa_composition_setup_file ehee.hydrophobic.comp'}
+
+    design(input_dir, data_path, selected_designs_file, num_jobs, job_id, do_ex_rot_run=True, **design_options)
 
     end_time = time.time()
     print('Finish job in {0} seconds.'.format(int(end_time - start_time)))
