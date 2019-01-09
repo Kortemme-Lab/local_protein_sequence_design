@@ -19,7 +19,6 @@ def hierarchical_cluster(distance_matrix, n_clusters=10):
     """
 
     # convert distance matrix into vector
-    print(distance_matrix.shape())
     distance_vector = squareform(np.array(distance_matrix))
     hierarchical_clustering = AgglomerativeClustering(n_clusters=n_clusters, affinity='precomputed').fit(distance_vector)
     print(hierarchical_clustering.labels_)

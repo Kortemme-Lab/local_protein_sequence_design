@@ -114,7 +114,7 @@ if __name__ == '__main__':
     # layered_desig_list: list with default, termini, core, or surface
     # composition_file: '' or '-aa_composition_setup_file ehee.hydrophobic.comp'
     design_options = {'num_seq_per_model': 1, 'relax_script': 'default', 'repeats': 1, 'ramp': 0,
-                      'layered_design_list': ['core', 'surface'],
+                      'layered_design_list': ['termini', 'surface'],
                       'composition_file': '-aa_composition_setup_file ehee.hydrophobic.comp'}
     design(input_dir, data_path, pre_moved_bb_pdb, file_for_pre_moved_bb_insertion_points, num_jobs, job_id,
            do_ex_rot_run=False, **design_options)

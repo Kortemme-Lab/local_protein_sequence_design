@@ -13,7 +13,8 @@ all uses of CavityVolume - causes an error
     </CalculatorFilter>
     <Add filter_name="cavity_threshold" />
 
-
+made blueprint movers and filters use design.bp which is made from dssp of input structure
+replaced BuriedUnsatHbonds2 with BuriedUnsatHbonds
 """
 
 from pyrosetta import *
@@ -33,6 +34,31 @@ init(options='-aa_composition_setup_file ehee.hydrophobic.comp '
              '-mute core.pack.annealer.MultiCoolAnnealer '
              '-mute core.pack.pack_rotamers '
              '-mute protocols.forge.remodel.RemodelDesignMover')
+
+pdb_name = 'EHEE_rd1_0284.pdb'
+pose = pose_from_file(pdb_name)
+dssp_str = rosetta.core.scoring.dssp.Dssp(pose).get_dssp_secstruct()
+seq_str = pose.sequence()
+print(dssp_str)
+print(seq_str)
+
+blueprint_lines = ['SSPAIR 1-3.A.0;2-3.A.0\n']
+for index, dssp_char in enumerate(dssp_str):
+    amino_acid = seq_str[index]
+    print(amino_acid)
+    if dssp_char == 'E':
+        blueprint_ss = 'EB'
+    elif dssp_char == 'H':
+        blueprint_ss = 'HA'
+    elif dssp_char == 'L':
+        blueprint_ss = 'LX'
+    else:
+        raise Exception('Unexpected dssp character {0} in {1}'.format(dssp_char, pdb_name))
+    blueprint_lines.append('{0}    {1}    {2}    .\n'.format(index + 1, amino_acid, blueprint_ss))
+
+with open('design.bp', 'w') as o:
+    o.writelines(blueprint_lines)
+
 
 xmlobj = rosetta.protocols.rosetta_scripts.XmlObjects.create_from_string(
 '''
@@ -67,7 +93,7 @@ xmlobj = rosetta.protocols.rosetta_scripts.XmlObjects.create_from_string(
 
 </SCOREFXNS>
 <TASKOPERATIONS>
-	 <LayerDesign name="layer_core_SCN" layer="core" pore_radius="2.0" verbose="true" use_sidechain_neighbors="True" core="4" />
+	 <LayerDesign name="layer_core_SCN" layer="core" pore_radius="2.0" verbose="true" use_sidechain_neighbors="True" core="4" make_pymol_script="1"/>
 </TASKOPERATIONS>
 
 
@@ -83,13 +109,13 @@ xmlobj = rosetta.protocols.rosetta_scripts.XmlObjects.create_from_string(
 	</CalculatorFilter>
 
 
-	<HelixKink name="hk1" blueprint="ehee.bp"/>
-	<SheetTopology name="sf1" blueprint="ehee.bp" />
-	<SecondaryStructure name="ss1" blueprint="ehee.bp.ss" />
+	<HelixKink name="hk1" blueprint="design.bp"/>
+	<SheetTopology name="sf1" blueprint="design.bp"/>
+	<SecondaryStructure name="ss1" blueprint="design.bp"/> 
 	<CompoundStatement name="cs1">
 		<AND filter_name="ss1" />
 		<AND filter_name="hk1" />
-		<AND filter_name="sf1" />
+		<AND filter_name="sf1"/> 
 	</CompoundStatement>
 
 
@@ -150,7 +176,7 @@ xmlobj = rosetta.protocols.rosetta_scripts.XmlObjects.create_from_string(
 </FILTERS>
 <TASKOPERATIONS>
 	<LimitAromaChi2 name="limitchi2" include_trp="1" />
-	<LayerDesign name="layer_all" layer="core_boundary_surface_Nterm_Cterm" use_sidechain_neighbors="True" pore_radius="2.0" verbose="true" core="3.5" surface="1.4" >
+	<LayerDesign name="layer_all" layer="core_boundary_surface_Nterm_Cterm" use_sidechain_neighbors="True" pore_radius="2.0" verbose="true" core="3.5" surface="1.4" make_pymol_script="1" >
 		   <Nterm>
 		   <all append="DEGHKNQRST" />
 		   <all exclude="CAFILMPVWY" />
@@ -167,9 +193,9 @@ xmlobj = rosetta.protocols.rosetta_scripts.XmlObjects.create_from_string(
 <MOVERS>
 	<Dssp name="dssp" />
 
-	<SheetCstGenerator name="sheet_new1" cacb_dihedral_tolerance="0.6" blueprint="ehee.bp" />
-	<SetSecStructEnergies name="set_ssene1" scorefxn="SFXN1" blueprint="ehee.bp" />	 
-	<BluePrintBDR name="bdr1" use_abego_bias="1" scorefxn="SFXN1" constraint_generators="sheet_new1" constraints_NtoC="0" blueprint="ehee.bp" />
+	<SheetCstGenerator name="sheet_new1" cacb_dihedral_tolerance="0.6" blueprint="design.bp"/> 
+	<SetSecStructEnergies name="set_ssene1" scorefxn="SFXN1" blueprint="design.bp"  />
+	<BluePrintBDR name="bdr1" use_abego_bias="1" scorefxn="SFXN1" constraint_generators="sheet_new1" constraints_NtoC="0" blueprint="design.bp"/>
 	<DumpPdb name="dump" fname="pass" tag_time="True"/>
 
 
@@ -179,9 +205,9 @@ xmlobj = rosetta.protocols.rosetta_scripts.XmlObjects.create_from_string(
 
 	<ParsedProtocol name="build_dssp1" >
 		<Add mover_name="bdr1" />
-		<Add mover_name="dssp" />
-		<Add filter_name="cs1" />
-		<Add filter_name="degree" />
+		<Add mover_name="dssp"/> 
+		#Add filter_name="cs1"/>
+		#Add filter_name="degree"/> 
 		<Add mover_name="fastdes"/>
 		<Add filter_name="np_count_ala" />
 		<Add filter_name="contact_threshold" />
@@ -195,7 +221,7 @@ xmlobj = rosetta.protocols.rosetta_scripts.XmlObjects.create_from_string(
 		<Add mover_name="dump"/>
 
 	</ParsedProtocol>
-	<LoopOver name="lover1" mover_name="build_dssp1" iterations="500" drift="0" ms_whenfail="FAIL_DO_NOT_RETRY" />
+	<LoopOver name="lover1" mover_name="build_dssp1" iterations="500" drift="0" ms_whenfail="MS_SUCCESS" />
 	<ParsedProtocol name="phase1" >
 		<Add mover_name="set_ssene1" />
 		<Add mover_name="lover1" />
@@ -207,7 +233,5 @@ xmlobj = rosetta.protocols.rosetta_scripts.XmlObjects.create_from_string(
 # PROTOCOLS
 # <Add mover_name="phase1" />
 phase1 = xmlobj.get_mover('phase1')
-
-pose = pose_from_file('start.pdb')
-
 phase1.apply(pose)
+
