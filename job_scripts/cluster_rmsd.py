@@ -19,10 +19,8 @@ def hierarchical_cluster(distance_matrix, n_clusters=10):
     """
 
     # convert distance matrix into vector
-    distance_vector = squareform(np.array(distance_matrix))
-    hierarchical_clustering = AgglomerativeClustering(n_clusters=n_clusters, affinity='precomputed').fit(distance_vector)
-    print(hierarchical_clustering.labels_)
-    print(len(hierarchical_clustering.labels_))
+    hierarchical_clustering = AgglomerativeClustering(n_clusters=n_clusters, affinity='precomputed', linkage='average')
+    hierarchical_clustering.fit(np.array(distance_matrix))
     return hierarchical_clustering.labels_
 
 
@@ -40,4 +38,4 @@ if __name__ == '__main__':
         cluster_id = cluster_labels[design_path_list.index(data_path_prefix + str(design_id))]
         design_df.loc[design_id, 'cluster_id'] = cluster_id
 
-    design_df.to_csv('_clusters.tsv'.format(unique_design_tsv.split('.tsv')[0]), sep='\t')
+    design_df.to_csv('{0}_clusters.tsv'.format(unique_design_tsv.split('.tsv')[0]), sep='\t')
