@@ -206,7 +206,11 @@ def calculate_bb_remodeled_region_rmsds(design_paths):
                 # Get the helix part of the LHL unit
 
                 helix_i = get_helix_of_lhl_unit(pose_designs[i], min(seg_i), max(seg_i))
-                helix_j = get_helix_of_lhl_unit(pose_lowest_energies[j], min(seg_j), max(seg_j))
+                
+                if i == j:
+                    helix_j = helix_i
+                else:
+                    helix_j = get_helix_of_lhl_unit(pose_lowest_energies[j], min(seg_j), max(seg_j))
 
                 len_comp = min(helix_i[1] - helix_i[0], helix_j[1] - helix_j[0])
 
@@ -237,7 +241,7 @@ def plot_bb_remodeled_region_rmsds(design_paths):
     plt.close()
     
     fig, ax = plt.subplots()
-    cax = ax.imshow(np.transpose(rmsds), origin='lower', interpolation='nearest', cmap='bwr', vmin=0, vmax=6)
+    cax = ax.imshow(np.transpose(rmsds), origin='lower', interpolation='nearest', cmap='bwr', vmin=0, vmax=5.5)
 
     ## Plot RMSD values
     #for i in range(len(design_paths)):
