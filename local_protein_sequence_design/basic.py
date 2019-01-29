@@ -2,7 +2,52 @@ import pyrosetta
 from pyrosetta import rosetta
 
 
-def get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True, limit_aro_chi2=True, layered_design=True):
+def get_link_residues_task_op(sequence_symmetry_map):
+    '''Generate the link residue task operation for a 
+    given sequence_symmetry_map.
+    '''
+    # Initialize the equivalent residues
+
+    equivalent_residues = []
+
+    for source_seg in sequence_symmetry_map.keys():
+        target_seg = sequence_symmetry_map[source_seg]
+
+        for i in range(source_seg[1] - source_seg[0] + 1):
+            equivalent_residues.append({source_seg[0] + i, target_seg[0] + i})
+
+    # Merget the equivalent sets
+
+    no_sets_to_merge = False
+
+    while not no_sets_to_merge:
+        no_sets_to_merge = True
+
+        for i in range(len(equivalent_residues)): 
+            for j in range(i + 1, len(equivalent_residues)):
+                if len(equivalent_residues[i].intersection(equivalent_residues[j])) > 0:
+
+                    equivalent_residues[i] = equivalent_residues[i].union(equivalent_residues[j])
+
+                    del equivalent_residues[j]
+
+                    no_sets_to_merge = False
+
+                    break
+
+            if not no_sets_to_merge:
+                break
+
+    # Create the link residues task operation
+
+    lr = rosetta.protocols.task_operations.LinkResidues()
+    
+    for s in equivalent_residues:
+        lr.add_group(','.join([str(r) for r in s]))
+    
+    return lr
+
+def get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True, limit_aro_chi2=True, layered_design=True, sequence_symmetry_map=None):
     '''Get a task factory given the designable and repackable residues.'''
     def list_to_str(l):
         return ','.join(list(str(i) for i in l))
@@ -56,6 +101,9 @@ def get_task_factory(pose, designable_residues, repackable_residues, extra_rotam
     		</Cterm>
         </LayerDesign>''')
         task_factory.push_back(ld)
+
+#    if sequence_symmetry_map:
+#        task_factory.push_back(get_link_residues_task_op(sequence_symmetry_map))
 
     return task_factory
 

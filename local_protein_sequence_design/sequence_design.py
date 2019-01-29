@@ -113,7 +113,7 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
 
     # Design everything
 
-    task_factory = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=False)
+    task_factory = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=False, sequence_symmetry_map=sequence_symmetry_map)
     
     if flex_bb:
         move_map = get_move_map([i for i in range(1, pose.size() + 1)], [], [])
@@ -132,7 +132,7 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
    
     if do_ex_rot_run: 
 
-        task_factory_ex_rot = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True)
+        task_factory_ex_rot = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True, sequence_symmetry_map=sequence_symmetry_map)
         fast_design.set_task_factory(task_factory_ex_rot)
         fast_design.apply(pose)
 
