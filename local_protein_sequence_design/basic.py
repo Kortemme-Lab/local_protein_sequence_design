@@ -102,8 +102,8 @@ def get_task_factory(pose, designable_residues, repackable_residues, extra_rotam
         </LayerDesign>''')
         task_factory.push_back(ld)
 
-#    if sequence_symmetry_map:
-#        task_factory.push_back(get_link_residues_task_op(sequence_symmetry_map))
+    if sequence_symmetry_map:
+        task_factory.push_back(get_link_residues_task_op(sequence_symmetry_map))
 
     return task_factory
 

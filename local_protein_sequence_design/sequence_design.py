@@ -82,7 +82,9 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
         designable_residues_all, repackable_residues
     '''
     
-    rosetta.basic.options.set_boolean_option('relax:constrain_relax_to_start_coords', True)
+    if sequence_symmetry_map is None:
+        rosetta.basic.options.set_boolean_option('relax:constrain_relax_to_start_coords', True)
+    
     xmlobj = rosetta.protocols.rosetta_scripts.XmlObjects.create_from_string(
     '''
     <MOVERS>
@@ -125,8 +127,10 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
     fast_design.apply(pose)
     
     rot_trial.task_factory(task_factory)
-    for i in range(3):
-        rot_trial.apply(pose)
+    
+    if sequence_symmetry_map is None:
+        for i in range(3):
+            rot_trial.apply(pose)
 
     # Do the final design with extra rotamers
    
@@ -137,8 +141,10 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
         fast_design.apply(pose)
 
         rot_trial.task_factory(task_factory_ex_rot)
-        for i in range(3):
-            rot_trial.apply(pose)
+        
+        if sequence_symmetry_map is None:
+            for i in range(3):
+                rot_trial.apply(pose)
 
     return designable_residues, repackable_residues
 
