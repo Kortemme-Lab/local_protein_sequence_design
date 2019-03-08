@@ -95,6 +95,19 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
     fast_design = xmlobj.get_mover('fastdes')
     rot_trial = xmlobj.get_mover('rot_trial')
 
+    # Use the rosettcon2018 relax script for better design
+
+    script = rosetta.std.vector_std_string()
+    script.append('repeat {0}'.format(fast_design_repeats))
+    script.append('ramp_repack_min 0.079 0.01     1.0')
+    script.append('ramp_repack_min 0.295 0.01     0.5')
+    script.append('ramp_repack_min 0.577 0.01     0.0')
+    script.append('ramp_repack_min 1     0.00001  0.0')
+    script.append('accept_to_best')
+    script.append('endrepeat')
+
+    fast_design.set_script_from_lines(script)
+
     # Set score function
 
     if punish_excess_ala:
@@ -149,7 +162,7 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
     return designable_residues, repackable_residues
 
 def make_one_design(output_path, input_pdb, bb_remodeled_residues, designable_residues=None, repackable_residues=None,
-        pre_moved_bb_pose=None, fast_design_repeats=1, do_ex_rot_run=True, sequence_symmetry_map=None, design_all=False):
+        pre_moved_bb_pose=None, fast_design_repeats=1, do_ex_rot_run=True, sequence_symmetry_map=None, design_all=False, residues_to_fix=[]):
     '''Make one design and dump the relative information.
     Args:
         output_path: path for the outputs
@@ -167,11 +180,14 @@ def make_one_design(output_path, input_pdb, bb_remodeled_residues, designable_re
     # Find designable and repackable residues
  
     if design_all:
-        designable_residues = [i for i in range(1, pose.size() + 1)]
-        repackable_residues = []
+        designable_residues = [i for i in range(1, pose.size() + 1) if not (i in residues_to_fix)]
+        repackable_residues = residues_to_fix
 
     elif (designable_residues is None) or (repackable_residues is None):
-        designable_residues = select_designable_residues(pose, bb_remodeled_residues, pre_moved_bb_pose=pre_moved_bb_pose)
+        designable_residues_raw = select_designable_residues(pose, bb_remodeled_residues, pre_moved_bb_pose=pre_moved_bb_pose)
+        designable_residues = [r for r in designable_residues_raw if not (r in residues_to_fix)]
+        designable_residues = designable_residues_raw
+        
         repackable_residues = find_surrounding_seqposes_noGP(pose, designable_residues, cutoff_distance=8)
 
     fast_design(pose, bb_remodeled_residues, designable_residues, repackable_residues, fast_design_repeats=fast_design_repeats, 

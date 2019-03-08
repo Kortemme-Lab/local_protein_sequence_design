@@ -43,7 +43,10 @@ def get_link_residues_task_op(sequence_symmetry_map):
     lr = rosetta.protocols.task_operations.LinkResidues()
     
     for s in equivalent_residues:
-        lr.add_group(','.join([str(r) for r in s]))
+
+        # NOTE: The first equivalent of the last residue should be smaller than 
+        # half of the total number of residues. Otherwise there will be a segfault.
+        lr.add_group(','.join([str(r) for r in sorted(s)]))
     
     return lr
 
