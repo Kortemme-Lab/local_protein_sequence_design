@@ -18,14 +18,19 @@ from pyrosetta import rosetta
 def load_design(design_path):
     '''Load a design.
     Return:
-        pose_design, pose_lowest_energy, bb_remodeled_residues, bb_fixed_residues
+        pose_design, pose_to_compare, pose_to_compare_type, bb_remodeled_residues, bb_fixed_residues
     '''
     pose_design = rosetta.core.import_pose.pose_from_file(os.path.join(design_path, 'design.pdb.gz'))
     
-    if os.path.exists(os.path.join(design_path, 'lowest_energy_model.pdb')):
-        pose_lowest_energy = rosetta.core.import_pose.pose_from_file(os.path.join(design_path, 'lowest_energy_model.pdb'))
+    if os.path.exists(os.path.join(design_path, 'experimentally_solved_structure.pdb')):
+        pose_to_compare = rosetta.core.import_pose.pose_from_file(os.path.join(design_path, 'experimentally_solved_structure.pdb'))
+        pose_to_compare_type = 'experiment' 
+    elif os.path.exists(os.path.join(design_path, 'lowest_energy_model.pdb')):
+        pose_to_compare = rosetta.core.import_pose.pose_from_file(os.path.join(design_path, 'lowest_energy_model.pdb'))
+        pose_to_compare_type = 'prediction' 
     else:
-        pose_lowest_energy = pose_design.clone()
+        pose_to_compare = pose_design.clone()
+        pose_to_compare_type = 'design' 
 
     with open(os.path.join(design_path, 'design_info.json'), 'r') as f:
         bb_remodeled_residues_all = sorted(json.load(f)['bb_remodeled_residues'])
@@ -42,7 +47,7 @@ def load_design(design_path):
     
     bb_fixed_residues = [i for i in range(1, pose_design.size() + 1) if not (i in bb_remodeled_residues_all)]
 
-    return pose_design, pose_lowest_energy, bb_remodeled_residues, bb_fixed_residues
+    return pose_design, pose_to_compare, pose_to_compare_type, bb_remodeled_residues, bb_fixed_residues
 
 def xyzV_to_np_array(xyz):
     return np.array([xyz.x, xyz.y, xyz.z])
@@ -166,7 +171,10 @@ def get_helix_of_lhl_unit(pose, lhl_start, lhl_stop):
 def calculate_bb_remodeled_region_rmsds(design_paths):
     '''Calculate the backbone RMSDs of the remodeled region.
     Return a two dimensional list where list[i][j] element
-    is the RMSD between design i and lowest scoring model j.
+    is the RMSD between design i and experimentally solved
+    or lowest scoring model j.
+    Return:
+        rmsds, pose_to_compare_types
     ''' 
     # Update the design_paths to exclude paths that have designed structures
 
@@ -175,12 +183,14 @@ def calculate_bb_remodeled_region_rmsds(design_paths):
     # Load the designs
 
     pose_designs = list(range(len(design_paths)))
-    pose_lowest_energies = list(range(len(design_paths)))
+    poses_to_compare = list(range(len(design_paths)))
+    pose_to_compare_types = list(range(len(design_paths)))
     all_bb_remodeled_residues = list(range(len(design_paths)))
     all_bb_fixed_residues = list(range(len(design_paths)))
 
     for i in range(len(design_paths)):
-        pose_designs[i], pose_lowest_energies[i], all_bb_remodeled_residues[i], all_bb_fixed_residues[i] = load_design(design_paths[i])
+        pose_designs[i], poses_to_compare[i], pose_to_compare_types[i], all_bb_remodeled_residues[i], all_bb_fixed_residues[i] \
+                = load_design(design_paths[i])
 
     # Loop through all pair of designs and calculate RMSDs
    
@@ -192,7 +202,7 @@ def calculate_bb_remodeled_region_rmsds(design_paths):
 
             # Superimpose design j to design i
 
-            superimpose_poses_by_residues(pose_lowest_energies[j], all_bb_fixed_residues[j], pose_designs[i], all_bb_fixed_residues[i])
+            superimpose_poses_by_residues(poses_to_compare[j], all_bb_fixed_residues[j], pose_designs[i], all_bb_fixed_residues[i])
         
             # Find the maped residues between the two structures
 
@@ -210,7 +220,7 @@ def calculate_bb_remodeled_region_rmsds(design_paths):
                 if i == j:
                     helix_j = helix_i
                 else:
-                    helix_j = get_helix_of_lhl_unit(pose_lowest_energies[j], min(seg_j), max(seg_j))
+                    helix_j = get_helix_of_lhl_unit(poses_to_compare[j], min(seg_j), max(seg_j))
 
                 len_comp = min(helix_i[1] - helix_i[0], helix_j[1] - helix_j[0])
 
@@ -222,26 +232,28 @@ def calculate_bb_remodeled_region_rmsds(design_paths):
 
             # Calculate RMSD 
 
-            rmsd = calc_backbone_RMSD(pose_lowest_energies[j], maped_residues_j, pose_designs[i], maped_residues_i)
+            rmsd = calc_backbone_RMSD(poses_to_compare[j], maped_residues_j, pose_designs[i], maped_residues_i)
 
             RMSDs[i].append(rmsd)
           
-    return RMSDs
+    return RMSDs, pose_to_compare_types
 
 def plot_bb_remodeled_region_rmsds(design_paths):
     '''Calculate the backbone RMSDs of the remodeled region.'''
     # Update the design_paths to exclude paths that have designed structures
 
-    design_paths = [d for d in design_paths if os.path.exists(os.path.join(d, 'design_info.json'))]
+    design_paths = [d.strip('/') for d in design_paths if os.path.exists(os.path.join(d, 'design_info.json'))]
 
-    rmsds = calculate_bb_remodeled_region_rmsds(design_paths)
+    rmsds, pose_to_compare_types = calculate_bb_remodeled_region_rmsds(design_paths)
+    
+    y_ticks = ['{0}_{1}'.format(design_paths[i], pose_to_compare_types[i]) for i in range(len(design_paths))]
 
     # Plot the heat map
 
     plt.close()
     
     fig, ax = plt.subplots()
-    cax = ax.imshow(np.transpose(rmsds), origin='lower', interpolation='nearest', cmap='bwr', vmin=0, vmax=5.5)
+    cax = ax.imshow(np.transpose(rmsds), origin='lower', interpolation='nearest', cmap='bwr', vmin=0, vmax=6)
 
     ## Plot RMSD values
     #for i in range(len(design_paths)):
@@ -249,12 +261,12 @@ def plot_bb_remodeled_region_rmsds(design_paths):
     #        ax.text(i - 0.35, j, "{:6.3f}".format(rmsds[i][j]), fontsize=10)
 
     plt.xticks(range(len(design_paths)), design_paths, fontsize=15, rotation='vertical')
-    plt.yticks(range(len(design_paths)), design_paths, fontsize=15)
+    plt.yticks(range(len(design_paths)), y_ticks, fontsize=15)
     
     plt.xlabel('Designs', fontsize=15)
-    plt.ylabel('Lowest energy predictions', fontsize=15)
+    #plt.ylabel('', fontsize=15)
 
-    plt.title('RMSD between designs and predicted structures', fontsize=15)
+    plt.title('RMSD between designs', fontsize=15)
 
     cbar = fig.colorbar(cax)
 
