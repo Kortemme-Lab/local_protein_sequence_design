@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-'''Generate DNA sequences for a given set of designs.
+'''Generate AA sequences and DNA sequences for a given set of designs.
 Usage:
     ./generate_dna_sequnces.py design_path1 [design_path2 ...]
 '''
 
 import sys
 import os
+
+import numpy as np
 
 import pyrosetta
 from pyrosetta import rosetta
@@ -39,6 +41,7 @@ def reverse_translate(aa_seq):
     dna_seq = ''
     for aa in aa_seq:
         dna_seq += ecoli_reverse_translate[aa][0]
+        #dna_seq += np.random.choice(ecoli_reverse_translate[aa])
 
     return dna_seq
 
@@ -50,11 +53,18 @@ def generate_dna_sequnces(design_paths, append_stop_codon=True, append_to_100_aa
 
     design_paths = [d for d in design_paths if os.path.exists(os.path.join(d, 'design.pdb.gz'))]
 
+    aa_sequences = []
     dna_sequences = []
 
     for d in design_paths:
         pose = rosetta.core.import_pose.pose_from_file(os.path.join(d, 'design.pdb.gz'))
         aa_seq = pose.sequence()
+
+        if aa_seq[0] == 'M':
+            aa_sequences.append(aa_seq + '*')
+        else:
+            aa_sequences.append('M' + aa_seq + '*')
+
         if append_stop_codon:
             aa_seq += '.'
 
@@ -67,7 +77,13 @@ def generate_dna_sequnces(design_paths, append_stop_codon=True, append_to_100_aa
 
         dna_sequences.append(reverse_translate(aa_seq))
 
-    # Write to a tsv file
+    # Write AA sequences
+
+    with open('aa_sequences.csv', 'w') as f:
+        for i in range(len(design_paths)):
+            f.write(design_paths[i] + ',' + aa_sequences[i] + '\n')
+
+    # Write DNA sequences
 
     with open('dna_sequences.tsv', 'w') as f:
         f.write('gene name\tFASTA_seq\n')
