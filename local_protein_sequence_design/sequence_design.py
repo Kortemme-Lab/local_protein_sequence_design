@@ -76,7 +76,7 @@ def get_move_map(bb_movable_residues, sc_movable_residues, movable_jumps):
     
     return mm
 
-def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_residues, fast_design_repeats=1, flex_bb=True, do_ex_rot_run=True, sequence_symmetry_map=None, punish_excess_ala=False):
+def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_residues, fast_design_repeats=1, flex_bb=True, do_ex_rot_run=True, sequence_symmetry_map=None, punish_excess_ala=False, designable_aa_types=None):
     '''Do fast design
     Return:
         designable_residues_all, repackable_residues
@@ -128,8 +128,12 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
 
     # Design everything
 
-    task_factory = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=False, sequence_symmetry_map=sequence_symmetry_map)
-    
+    if None is designable_aa_types:
+        task_factory = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=False, sequence_symmetry_map=sequence_symmetry_map)
+    else: # Manually specified AA types
+        task_factory = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=False, sequence_symmetry_map=sequence_symmetry_map,
+                designable_aa_types=designable_aa_types, layered_design=False)
+
     if flex_bb:
         move_map = get_move_map([i for i in range(1, pose.size() + 1)], [], [])
     else:
@@ -149,7 +153,13 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
    
     if do_ex_rot_run: 
 
-        task_factory_ex_rot = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True, sequence_symmetry_map=sequence_symmetry_map)
+        if None is designable_aa_types:
+            task_factory_ex_rot = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True, sequence_symmetry_map=sequence_symmetry_map)
+        else: #Manually specified AA types
+            task_factory_ex_rot = get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True, sequence_symmetry_map=sequence_symmetry_map,
+                    designable_aa_types=designable_aa_types, layered_design=False)
+
+        
         fast_design.set_task_factory(task_factory_ex_rot)
         fast_design.apply(pose)
 
@@ -162,7 +172,8 @@ def fast_design(pose, bb_remodeled_residues, designable_residues, repackable_res
     return designable_residues, repackable_residues
 
 def make_one_design(output_path, input_pdb, bb_remodeled_residues, designable_residues=None, repackable_residues=None,
-        pre_moved_bb_pose=None, fast_design_repeats=1, do_ex_rot_run=True, sequence_symmetry_map=None, design_all=False, residues_to_fix=[]):
+        pre_moved_bb_pose=None, fast_design_repeats=1, do_ex_rot_run=True, sequence_symmetry_map=None, design_all=False, residues_to_fix=[],
+        designable_aa_types=None):
     '''Make one design and dump the relative information.
     Args:
         output_path: path for the outputs
@@ -183,15 +194,16 @@ def make_one_design(output_path, input_pdb, bb_remodeled_residues, designable_re
         designable_residues = [i for i in range(1, pose.size() + 1) if not (i in residues_to_fix)]
         repackable_residues = residues_to_fix
 
-    elif (designable_residues is None) or (repackable_residues is None):
+    elif (designable_residues is None):
         designable_residues_raw = select_designable_residues(pose, bb_remodeled_residues, pre_moved_bb_pose=pre_moved_bb_pose)
         designable_residues = [r for r in designable_residues_raw if not (r in residues_to_fix)]
         designable_residues = designable_residues_raw
         
+    if repackable_residues is None:    
         repackable_residues = find_surrounding_seqposes_noGP(pose, designable_residues, cutoff_distance=8)
 
     fast_design(pose, bb_remodeled_residues, designable_residues, repackable_residues, fast_design_repeats=fast_design_repeats, 
-            do_ex_rot_run=do_ex_rot_run, sequence_symmetry_map=sequence_symmetry_map)
+            do_ex_rot_run=do_ex_rot_run, sequence_symmetry_map=sequence_symmetry_map, designable_aa_types=designable_aa_types)
 
     # Dump information
 

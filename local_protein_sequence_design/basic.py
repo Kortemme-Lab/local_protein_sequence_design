@@ -50,7 +50,8 @@ def get_link_residues_task_op(sequence_symmetry_map):
     
     return lr
 
-def get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True, limit_aro_chi2=True, layered_design=True, sequence_symmetry_map=None):
+def get_task_factory(pose, designable_residues, repackable_residues, extra_rotamers=True, limit_aro_chi2=True, layered_design=True, sequence_symmetry_map=None,
+        designable_aa_types=None):
     '''Get a task factory given the designable and repackable residues.'''
     def list_to_str(l):
         return ','.join(list(str(i) for i in l))
@@ -58,12 +59,18 @@ def get_task_factory(pose, designable_residues, repackable_residues, extra_rotam
     task_factory = rosetta.core.pack.task.TaskFactory()
 
     if len(designable_residues) > 0:
-        designable_selector = rosetta.core.select.residue_selector.ResidueIndexSelector(list_to_str(designable_residues)) 
-        racaa = rosetta.core.pack.task.operation.RestrictAbsentCanonicalAASRLT()
-        racaa.aas_to_keep('GAPVILMFYWSTKRDENQ') # No CYS or HIS
-        designable_operation = rosetta.core.pack.task.operation.OperateOnResidueSubset(
-                racaa, designable_selector)
-        task_factory.push_back(designable_operation)
+        for i in range(len(designable_residues)):
+            designable_selector = rosetta.core.select.residue_selector.ResidueIndexSelector(list_to_str([designable_residues[i]])) 
+            racaa = rosetta.core.pack.task.operation.RestrictAbsentCanonicalAASRLT()
+
+            if designable_aa_types is None or len(designable_residues) != len(designable_aa_types):
+                racaa.aas_to_keep('GAPVILMFYWSTKRDENQ') # No CYS or HIS
+            else:
+                racaa.aas_to_keep(designable_aa_types[i])
+
+            designable_operation = rosetta.core.pack.task.operation.OperateOnResidueSubset(
+                    racaa, designable_selector)
+            task_factory.push_back(designable_operation)
 
     if len(repackable_residues) > 0:
         repackable_selector = rosetta.core.select.residue_selector.ResidueIndexSelector(list_to_str(repackable_residues)) 
