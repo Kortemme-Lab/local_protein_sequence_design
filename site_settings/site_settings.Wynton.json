@@ -1,0 +1,12 @@
+{
+  "runpsipred_single" : "/wynton/home/kortemme/xingjiepan/Softwares/local_protein_sequence_design/dependencies/dependencies/psipred/runpsipred_single",
+  "fragment_picker" : "/wynton/home/kortemme/xingjiepan/Softwares/Rosetta/Rosetta/main/source/bin/fragment_picker.linuxgccrelease",
+  "vall" : "/wynton/home/kortemme/xingjiepan/Softwares/Rosetta/Rosetta/tools/fragment_tools/vall.jul19.2011",
+  "csblast" : "/wynton/home/kortemme/xingjiepan/Softwares/csblast/csblast-2.2.3_linux64/",
+  "blastpgp" : "/wynton/home/kortemme/xingjiepan/Softwares/blast/blast-2.2.26/bin/blastpgp",
+  "placeholder_seqs" : "/wynton/home/kortemme/xingjiepan/Softwares/local_protein_sequence_design/database/blast_placeholder_sequences/placeholder_seqs",
+  "sparksx_path" : "/wynton/home/kortemme/xingjiepan/Softwares/sparks-x",
+  "rosetta_database_fragment_picking" : "/wynton/home/kortemme/xingjiepan/Softwares/Rosetta/Rosetta/main/database",
+  "dalphaball" : "/wynton/home/kortemme/xingjiepan/Softwares/local_protein_sequence_design/dependencies/dependencies/DAlpahBall/DAlphaBall.gcc",
+  "fragment_quality_analysis_weights" : "/wynton/home/kortemme/xingjiepan/Softwares/local_protein_sequence_design/database/fragment_quality_analysis/standard.wghts"
+}
