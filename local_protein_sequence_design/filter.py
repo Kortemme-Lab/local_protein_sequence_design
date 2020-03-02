@@ -163,12 +163,6 @@ def generate_filter_scores(filter_info_file, pose, designable_residues, repackab
     filter_scores['movable_residues_max_energy'] = residues_max_energy(pose, movable_residues)
     filter_scores['all_residues_max_energy'] = residues_max_energy(pose, all_residues)
 
-    # Get the scores for buried unsatisfied hbonds
-
-    hbond_scores = hydrogen_bonds.get_hbond_metrics(pose, bb_remodeled_residues, designable_residues, movable_residues)
-    for k in hbond_scores.keys():
-        filter_scores[k] = hbond_scores[k]
-
     # Get the number of over saturated hbond acceptors
 
     filter_scores['num_over_saturated_hbond_acceptors_for_designable_residues'] = get_num_over_saturated_hbond_acceptors(pose, designable_residues)
@@ -196,6 +190,12 @@ def generate_filter_scores(filter_info_file, pose, designable_residues, repackab
     filter_scores['designable_local_holes_score'] = get_holes_score_for_residues(pose, designable_residues)
     filter_scores['movable_local_holes_score'] = get_holes_score_for_residues(pose, movable_residues)
     filter_scores['all_local_holes_score'] = get_holes_score_for_residues(pose, all_residues)
+
+    # Get the scores for buried unsatisfied hbonds
+
+    hbond_scores = hydrogen_bonds.get_hbond_metrics(pose, bb_remodeled_residues, designable_residues, movable_residues)
+    for k in hbond_scores.keys():
+        filter_scores[k] = hbond_scores[k]
 
     # Get the backbone remodeled residues helixc complementarity score
 
